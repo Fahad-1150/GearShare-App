@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'landingPage.dart';
 import 'pages/sign_in_page.dart';
 import 'pages/sign_up_page.dart';
+import 'pages/dashboard_page.dart';
 import 'services/supabase_service.dart';
 
 Future<void> main() async {
@@ -26,13 +27,49 @@ class GearShareApp extends StatelessWidget {
     return MaterialApp(
       title: 'GearShare',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF0F0F0F),
+        primaryColor: const Color(0xFFBB86FC),
+        colorScheme: ColorScheme.dark(
+          primary: const Color(0xFFBB86FC),
+          secondary: const Color(0xFF9370DB),
+          surface: const Color(0xFF1E1E1E),
+          error: const Color(0xFFCF6679),
+        ),
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF1E1E1E),
+          foregroundColor: Color(0xFFFFFFFF),
+          elevation: 0,
+          centerTitle: false,
+        ),
+        cardTheme: CardThemeData(
+          color: const Color(0xFF1E1E1E),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.white.withOpacity(0.05)),
+          ),
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFBB86FC),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      ),
       initialRoute: '/',
       routes: {
         '/': (context) => const LandingPage(),
         '/signin': (context) => const SignInPage(),
         '/signup': (context) => const SignUpPage(),
         '/home': (context) => const HomePage(),
+        '/dashboard': (context) => const DashboardPage(),
       },
     );
   }
