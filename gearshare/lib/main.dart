@@ -185,6 +185,8 @@ class _HomePageState extends State<HomePage> {
                                 _buildInfoRow(
                                   'Name',
                                   userData['name'] ?? 'N/A',
+
+                                  
                                 ),
                                 _buildInfoRow(
                                   'Email',

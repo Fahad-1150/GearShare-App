@@ -69,7 +69,7 @@ class _DashboardPageState extends State<DashboardPage>
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 10),
                       Text(
                         'Manage your equipment rentals',
                         style: TextStyle(fontSize: 14, color: Colors.grey[400]),
@@ -79,7 +79,7 @@ class _DashboardPageState extends State<DashboardPage>
                 ),
               ),
               bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(50),
+                preferredSize: const Size.fromHeight(100),
                 child: Theme(
                   data: Theme.of(
                     context,
