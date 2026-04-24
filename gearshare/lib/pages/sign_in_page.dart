@@ -37,8 +37,8 @@ class _SignInPageState extends State<SignInPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Signed in successfully!')),
         );
-        // Navigate to dashboard
-        Navigator.of(context).pushReplacementNamed('/dashboard');
+        // Navigate to feed page
+        Navigator.of(context).pushReplacementNamed('/feed');
       }
     } catch (e) {
       setState(() {

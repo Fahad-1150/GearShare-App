@@ -4,6 +4,7 @@ import 'landingPage.dart';
 import 'pages/sign_in_page.dart';
 import 'pages/sign_up_page.dart';
 import 'pages/dashboard_page.dart';
+import 'pages/feed_page.dart';
 import 'services/supabase_service.dart';
 
 Future<void> main() async {
@@ -70,6 +71,7 @@ class GearShareApp extends StatelessWidget {
         '/signup': (context) => const SignUpPage(),
         '/home': (context) => const HomePage(),
         '/dashboard': (context) => const DashboardPage(),
+        '/feed': (context) => const FeedPage(),
       },
     );
   }
@@ -185,8 +187,6 @@ class _HomePageState extends State<HomePage> {
                                 _buildInfoRow(
                                   'Name',
                                   userData['name'] ?? 'N/A',
-
-                                  
                                 ),
                                 _buildInfoRow(
                                   'Email',

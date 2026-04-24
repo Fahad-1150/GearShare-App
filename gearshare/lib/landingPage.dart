@@ -19,7 +19,7 @@ class LandingPage extends StatelessWidget {
               style: TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF2C4B7C), 
+                color: Color(0xFF2C4B7C),
                 letterSpacing: 2,
               ),
             ),
@@ -30,10 +30,10 @@ class LandingPage extends StatelessWidget {
             const SizedBox(height: 50),
             ElevatedButton(
               onPressed: () {
-                Navigator.of(context).pushNamed('/signin');
+                Navigator.of(context).pushNamed('/feed');
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE87C31), 
+                backgroundColor: const Color(0xFFE87C31),
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 40,
@@ -66,7 +66,7 @@ class _AnimatedLogoState extends State<AnimatedLogo>
     _controller = AnimationController(
       duration: const Duration(seconds: 10),
       vsync: this,
-    )..repeat(); 
+    )..repeat();
   }
 
   @override
@@ -98,7 +98,6 @@ class _AnimatedLogoState extends State<AnimatedLogo>
           ),
         ),
 
-        
         Container(
           width: 160,
           height: 160,
@@ -111,7 +110,6 @@ class _AnimatedLogoState extends State<AnimatedLogo>
           ),
         ),
 
-        
         AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
