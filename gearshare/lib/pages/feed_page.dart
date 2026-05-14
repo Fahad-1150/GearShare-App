@@ -39,12 +39,25 @@ class _FeedPageState extends State<FeedPage> {
     'Other',
   ];
 
+  int _selectedIndex = 0;
+  late Future<Map<String, dynamic>?> _profileFuture;
+
   @override
   void initState() {
     super.initState();
     _loadEquipment();
     _initializeUserLocation();
+    _loadProfileData();
     _searchController.addListener(_filterEquipment);
+  }
+
+  void _loadProfileData() {
+    final currentUser = SupabaseService().getCurrentUser();
+    if (currentUser != null) {
+      _profileFuture = SupabaseService().getUserData(currentUser.id);
+    } else {
+      _profileFuture = Future.value(null);
+    }
   }
 
   @override
@@ -178,389 +191,735 @@ class _FeedPageState extends State<FeedPage> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = SupabaseService().getCurrentUser();
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F0F),
       body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: _selectedIndex == 0
+            ? Column(
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'GearShare',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFFE87C31),
-                            ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Find equipment near you',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                  if (SupabaseService().getCurrentUser() == null)
-                    TextButton.icon(
-                      onPressed: () => Navigator.pushNamed(context, '/signin'),
-                      icon: const Icon(Icons.login, color: Color(0xFFE87C31)),
-                      label: const Text(
-                        'Login',
-                        style: TextStyle(
-                          color: Color(0xFFE87C31),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            // Search and Filter Row
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  // Search Bar
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        hintText: 'Search equipment...',
-                        hintStyle: const TextStyle(color: Colors.grey),
-                        prefixIcon: const Icon(
-                          Icons.search,
-                          color: Colors.grey,
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFF1E1E1E),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF333333),
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF333333),
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFFE87C31),
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                      ),
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Category Filter Dropdown
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E1E),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF333333)),
-                    ),
-                    child: PopupMenuButton<String>(
-                      onSelected: _onCategoryChanged,
-                      itemBuilder: (BuildContext context) {
-                        return _categories.map((String choice) {
-                          return PopupMenuItem<String>(
-                            value: choice,
-                            child: Row(
-                              children: [
-                                if (_selectedCategory == choice)
-                                  const Padding(
-                                    padding: EdgeInsets.only(right: 8),
-                                    child: Icon(
-                                      Icons.check,
-                                      color: Color(0xFFE87C31),
-                                      size: 20,
-                                    ),
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'GearShare',
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFFE87C31),
                                   ),
-                                Text(choice),
-                              ],
                             ),
-                          );
-                        }).toList();
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: Icon(
-                          Icons.filter_list,
-                          color:
-                              _selectedCategory != null &&
-                                  _selectedCategory != 'All'
-                              ? const Color(0xFFE87C31)
-                              : Colors.grey,
-                          size: 24,
+                            const SizedBox(height: 4),
+                            Text(
+                              'Find equipment near you',
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(color: Colors.grey),
+                            ),
+                          ],
                         ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Distance Filter Dropdown
-                  if (_userPosition != null)
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1E1E1E),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF333333)),
-                      ),
-                      child: PopupMenuButton<double?>(
-                        onSelected: _onDistanceChanged,
-                        itemBuilder: (BuildContext context) {
-                          final items = <PopupMenuEntry<double?>>[
-                            const PopupMenuItem<double?>(
-                              value: null,
-                              child: Row(
-                                children: [
-                                  Padding(
-                                    padding: EdgeInsets.only(right: 8),
-                                    child: Icon(
-                                      Icons.check,
-                                      color: Color(0xFFE87C31),
-                                      size: 20,
-                                    ),
-                                  ),
-                                  Text('All Distances'),
-                                ],
+                        if (SupabaseService().getCurrentUser() == null)
+                          TextButton.icon(
+                            onPressed: () =>
+                                Navigator.pushNamed(context, '/signin'),
+                            icon: const Icon(
+                              Icons.login,
+                              color: Color(0xFFE87C31),
+                            ),
+                            label: const Text(
+                              'Login',
+                              style: TextStyle(
+                                color: Color(0xFFE87C31),
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
-                            const PopupMenuDivider(),
-                          ];
-
-                          for (double distance in distanceOptions) {
-                            items.add(
-                              PopupMenuItem<double?>(
-                                value: distance,
-                                child: Row(
-                                  children: [
-                                    if (_selectedDistance == distance)
-                                      const Padding(
-                                        padding: EdgeInsets.only(right: 8),
-                                        child: Icon(
-                                          Icons.check,
-                                          color: Color(0xFFE87C31),
-                                          size: 20,
-                                        ),
-                                      ),
-                                    Text('${distance.toInt()} km'),
-                                  ],
+                          ),
+                      ],
+                    ),
+                  ),
+                  // Search and Filter Row
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: [
+                        // Search Bar
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              hintText: 'Search equipment...',
+                              hintStyle: const TextStyle(color: Colors.grey),
+                              prefixIcon: const Icon(
+                                Icons.search,
+                                color: Colors.grey,
+                              ),
+                              filled: true,
+                              fillColor: const Color(0xFF1E1E1E),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF333333),
                                 ),
                               ),
-                            );
-                          }
-
-                          return items;
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Icon(
-                            Icons.location_on,
-                            color: _selectedDistance != null
-                                ? const Color(0xFFE87C31)
-                                : Colors.grey,
-                            size: 24,
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF333333),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFE87C31),
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                            style: const TextStyle(color: Colors.white),
                           ),
                         ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            // Content
-            Expanded(
-              child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFFE87C31),
-                      ),
-                    )
-                  : _error != null
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            color: Colors.red,
-                            size: 48,
+                        const SizedBox(width: 12),
+                        // Category Filter Dropdown
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E1E1E),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFF333333)),
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _error!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.red),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: _loadEquipment,
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Retry'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFFE87C31),
+                          child: PopupMenuButton<String>(
+                            onSelected: _onCategoryChanged,
+                            itemBuilder: (BuildContext context) {
+                              return _categories.map((String choice) {
+                                return PopupMenuItem<String>(
+                                  value: choice,
+                                  child: Row(
+                                    children: [
+                                      if (_selectedCategory == choice)
+                                        const Padding(
+                                          padding: EdgeInsets.only(right: 8),
+                                          child: Icon(
+                                            Icons.check,
+                                            color: Color(0xFFE87C31),
+                                            size: 20,
+                                          ),
+                                        ),
+                                      Text(choice),
+                                    ],
+                                  ),
+                                );
+                              }).toList();
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              child: Icon(
+                                Icons.filter_list,
+                                color:
+                                    _selectedCategory != null &&
+                                        _selectedCategory != 'All'
+                                    ? const Color(0xFFE87C31)
+                                    : Colors.grey,
+                                size: 24,
+                              ),
                             ),
                           ),
-                        ],
-                      ),
-                    )
-                  : RefreshIndicator(
-                      onRefresh: _loadEquipment,
-                      color: const Color(0xFFE87C31),
-                      child: ListView(
-                        children: [
-                          // "Here" Featured Section
-                          if (_allEquipment.isNotEmpty)
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
+                        ),
+                        const SizedBox(width: 12),
+                        // Distance Filter Dropdown
+                        if (_userPosition != null)
+                          Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E1E1E),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: const Color(0xFF333333),
+                              ),
+                            ),
+                            child: PopupMenuButton<double?>(
+                              onSelected: _onDistanceChanged,
+                              itemBuilder: (BuildContext context) {
+                                final items = <PopupMenuEntry<double?>>[
+                                  const PopupMenuItem<double?>(
+                                    value: null,
                                     child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text(
-                                          '📍 Here',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .titleLarge
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.bold,
-                                                color: Colors.white,
-                                              ),
+                                        Padding(
+                                          padding: EdgeInsets.only(right: 8),
+                                          child: Icon(
+                                            Icons.check,
+                                            color: Color(0xFFE87C31),
+                                            size: 20,
+                                          ),
                                         ),
-                                        TextButton(
-                                          onPressed: () {
-                                            setState(() {
-                                              _selectedCategory = null;
-                                            });
-                                            _filterEquipment();
-                                          },
-                                          child: const Text('View All'),
+                                        Text('All Distances'),
+                                      ],
+                                    ),
+                                  ),
+                                  const PopupMenuDivider(),
+                                ];
+
+                                for (double distance in distanceOptions) {
+                                  items.add(
+                                    PopupMenuItem<double?>(
+                                      value: distance,
+                                      child: Row(
+                                        children: [
+                                          if (_selectedDistance == distance)
+                                            const Padding(
+                                              padding: EdgeInsets.only(
+                                                right: 8,
+                                              ),
+                                              child: Icon(
+                                                Icons.check,
+                                                color: Color(0xFFE87C31),
+                                                size: 20,
+                                              ),
+                                            ),
+                                          Text('${distance.toInt()} km'),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }
+
+                                return items;
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                child: Icon(
+                                  Icons.location_on,
+                                  color: _selectedDistance != null
+                                      ? const Color(0xFFE87C31)
+                                      : Colors.grey,
+                                  size: 24,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Content
+                  Expanded(
+                    child: _isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFFE87C31),
+                            ),
+                          )
+                        : _error != null
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  color: Colors.red,
+                                  size: 48,
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  _error!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: _loadEquipment,
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text('Retry'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFE87C31),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : RefreshIndicator(
+                            onRefresh: _loadEquipment,
+                            color: const Color(0xFFE87C31),
+                            child: ListView(
+                              children: [
+                                // "Here" Featured Section
+                                if (_allEquipment.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      0,
+                                      16,
+                                      24,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 12,
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                '📍 Here',
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .titleLarge
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Colors.white,
+                                                    ),
+                                              ),
+                                              TextButton(
+                                                onPressed: () {
+                                                  setState(() {
+                                                    _selectedCategory = null;
+                                                  });
+                                                  _filterEquipment();
+                                                },
+                                                child: const Text('View All'),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        SizedBox(
+                                          height: 260,
+                                          child: ListView.builder(
+                                            scrollDirection: Axis.horizontal,
+                                            itemCount: _allEquipment
+                                                .take(5)
+                                                .length,
+                                            itemBuilder: (context, index) {
+                                              return Padding(
+                                                padding: const EdgeInsets.only(
+                                                  right: 12,
+                                                ),
+                                                child: _buildFeaturedCard(
+                                                  context,
+                                                  _allEquipment[index],
+                                                ),
+                                              );
+                                            },
+                                          ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  SizedBox(
-                                    height: 260,
-                                    child: ListView.builder(
-                                      scrollDirection: Axis.horizontal,
-                                      itemCount: _allEquipment.take(5).length,
-                                      itemBuilder: (context, index) {
-                                        return Padding(
-                                          padding: const EdgeInsets.only(
-                                            right: 12,
-                                          ),
-                                          child: _buildFeaturedCard(
-                                            context,
-                                            _allEquipment[index],
-                                          ),
-                                        );
-                                      },
-                                    ),
+                                // All Equipment Section
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 16,
+                                    right: 16,
+                                    bottom: 16,
                                   ),
-                                ],
-                              ),
-                            ),
-                          // All Equipment Section
-                          Padding(
-                            padding: const EdgeInsets.only(
-                              left: 16,
-                              right: 16,
-                              bottom: 16,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'All Equipment',
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'All Equipment',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleLarge
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
                                       ),
+                                      const SizedBox(height: 12),
+                                      _filteredEquipment.isEmpty
+                                          ? Center(
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(
+                                                    Icons.shopping_bag_outlined,
+                                                    color: Colors.grey[600],
+                                                    size: 48,
+                                                  ),
+                                                  const SizedBox(height: 16),
+                                                  Text(
+                                                    'No equipment found',
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .bodyLarge
+                                                        ?.copyWith(
+                                                          color: Colors.grey,
+                                                        ),
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    'Try adjusting your search or filters',
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .bodySmall
+                                                        ?.copyWith(
+                                                          color: Colors.grey,
+                                                        ),
+                                                  ),
+                                                ],
+                                              ),
+                                            )
+                                          : GridView.builder(
+                                              shrinkWrap: true,
+                                              physics:
+                                                  const NeverScrollableScrollPhysics(),
+                                              gridDelegate:
+                                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                                    crossAxisCount: 2,
+                                                    childAspectRatio: 0.75,
+                                                    crossAxisSpacing: 12,
+                                                    mainAxisSpacing: 16,
+                                                  ),
+                                              itemCount:
+                                                  _filteredEquipment.length,
+                                              itemBuilder: (context, index) {
+                                                return _buildEquipmentCard(
+                                                  context,
+                                                  _filteredEquipment[index],
+                                                );
+                                              },
+                                            ),
+                                    ],
+                                  ),
                                 ),
-                                const SizedBox(height: 12),
-                                _filteredEquipment.isEmpty
-                                    ? Center(
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.shopping_bag_outlined,
-                                              color: Colors.grey[600],
-                                              size: 48,
-                                            ),
-                                            const SizedBox(height: 16),
-                                            Text(
-                                              'No equipment found',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodyLarge
-                                                  ?.copyWith(
-                                                    color: Colors.grey,
-                                                  ),
-                                            ),
-                                            const SizedBox(height: 8),
-                                            Text(
-                                              'Try adjusting your search or filters',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodySmall
-                                                  ?.copyWith(
-                                                    color: Colors.grey,
-                                                  ),
-                                            ),
-                                          ],
-                                        ),
-                                      )
-                                    : GridView.builder(
-                                        shrinkWrap: true,
-                                        physics:
-                                            const NeverScrollableScrollPhysics(),
-                                        gridDelegate:
-                                            const SliverGridDelegateWithFixedCrossAxisCount(
-                                              crossAxisCount: 2,
-                                              childAspectRatio: 0.75,
-                                              crossAxisSpacing: 12,
-                                              mainAxisSpacing: 16,
-                                            ),
-                                        itemCount: _filteredEquipment.length,
-                                        itemBuilder: (context, index) {
-                                          return _buildEquipmentCard(
-                                            context,
-                                            _filteredEquipment[index],
-                                          );
-                                        },
-                                      ),
                               ],
+                            ),
+                          ),
+                  ),
+                ],
+              )
+            : _buildProfileBody(context, currentUser),
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _selectedIndex,
+        onDestinationSelected: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Feed',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileBody(BuildContext context, currentUser) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'My Profile',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              IconButton(
+                onPressed: () {},
+                icon: const Icon(Icons.menu, color: Colors.white),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEDF9F0),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4E9165),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.person,
+                        size: 36,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            currentUser != null
+                                ? currentUser.email ?? 'Guest'
+                                : 'Guest User',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1B5E20),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            currentUser != null
+                                ? currentUser.email ?? 'No email'
+                                : 'Sign in to view profile',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.black54,
                             ),
                           ),
                         ],
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: currentUser == null
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'You are currently not signed in.',
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            ElevatedButton(
+                              onPressed: () {
+                                Navigator.pushNamed(context, '/signin');
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF4E9165),
+                              ),
+                              child: const Text('Sign In'),
+                            ),
+                          ],
+                        )
+                      : FutureBuilder<Map<String, dynamic>?>(
+                          future: _profileFuture,
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return const Center(
+                                child: SizedBox(
+                                  height: 30,
+                                  width: 30,
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
+
+                            if (snapshot.hasError) {
+                              return Text(
+                                'Error loading profile: ${snapshot.error}',
+                                style: const TextStyle(color: Colors.red),
+                              );
+                            }
+
+                            final userData = snapshot.data;
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildProfileInfoRow(
+                                  'Phone',
+                                  userData?['phone'] ?? 'Not available',
+                                ),
+                                const SizedBox(height: 12),
+                                _buildProfileInfoRow(
+                                  'Location',
+                                  userData?['location'] ?? 'dhaka',
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Quick Actions',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildProfileActionRow(
+            context,
+            icon: Icons.message_outlined,
+            title: 'Messages',
+            subtitle: 'Chat with donors and receivers',
+            onTap: () {},
+          ),
+          const SizedBox(height: 12),
+          _buildProfileActionRow(
+            context,
+            icon: Icons.group_outlined,
+            title: 'Requested to Me',
+            subtitle: 'View all requests for your donations',
+            onTap: () {},
+          ),
+          const SizedBox(height: 12),
+          _buildProfileActionRow(
+            context,
+            icon: Icons.list_alt_outlined,
+            title: 'My Requests',
+            subtitle: 'View equipment requests you made',
+            onTap: () {},
+          ),
+          const SizedBox(height: 12),
+          _buildProfileActionRow(
+            context,
+            icon: Icons.inventory_2_outlined,
+            title: 'Browse Equipment',
+            subtitle: 'Search available gear to borrow or rent',
+            onTap: () {},
+          ),
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.black54,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileActionRow(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF333333)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFF2E7D32),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: Colors.white),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: Colors.white60, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white54,
+              size: 18,
             ),
           ],
         ),
@@ -617,7 +976,6 @@ class _FeedPageState extends State<FeedPage> {
                         topLeft: Radius.circular(12),
                         topRight: Radius.circular(12),
                       ),
-                      
                     ),
                     // Distance badge
                     if (distance != null)
@@ -756,7 +1114,6 @@ class _FeedPageState extends State<FeedPage> {
                         topLeft: Radius.circular(12),
                         topRight: Radius.circular(12),
                       ),
-                    
                     ),
                     // Distance badge
                     if (distance != null)

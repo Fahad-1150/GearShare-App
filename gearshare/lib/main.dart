@@ -64,7 +64,7 @@ class GearShareApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: '/',
+      initialRoute: '/feed',
       routes: {
         '/': (context) => const LandingPage(),
         '/signin': (context) => const SignInPage(),

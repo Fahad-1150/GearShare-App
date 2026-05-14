@@ -63,7 +63,42 @@ class EquipmentService {
           .toList();
     } catch (e) {
       print('Error fetching public equipment: $e');
+
+      if (e.toString().contains('Could not find the table') ||
+          e.toString().contains('PGRST205')) {
+        return _getPublicEquipmentFallback(limit: limit, offset: offset);
+      }
+
       rethrow;
+    }
+  }
+
+  Future<List<Equipment>> _getPublicEquipmentFallback({
+    int limit = 20,
+    int offset = 0,
+  }) async {
+    try {
+      final response = await _client
+          .from('public_equipment')
+          .select(
+            'equipment(*, equipment_images(id, image_url, display_order))',
+          )
+          .order('created_at', ascending: false)
+          .range(offset, offset + limit - 1);
+
+      return (response as List)
+          .map((item) {
+            final equipmentJson = (item as Map<String, dynamic>)['equipment'];
+            if (equipmentJson is Map<String, dynamic>) {
+              return Equipment.fromJson(equipmentJson);
+            }
+            return null;
+          })
+          .whereType<Equipment>()
+          .toList();
+    } catch (e) {
+      print('Public equipment fallback failed: $e');
+      return [];
     }
   }
 
