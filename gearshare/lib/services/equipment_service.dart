@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -56,7 +57,8 @@ class EquipmentService {
           .eq('is_public', true)
           .eq('status', 'available')
           .order('created_at', ascending: false)
-          .range(offset, offset + limit - 1);
+          .range(offset, offset + limit - 1)
+          .timeout(const Duration(seconds: 20));
 
       return (response as List)
           .map((item) => Equipment.fromJson(item as Map<String, dynamic>))
@@ -84,7 +86,8 @@ class EquipmentService {
             'equipment(*, equipment_images(id, image_url, display_order))',
           )
           .order('created_at', ascending: false)
-          .range(offset, offset + limit - 1);
+          .range(offset, offset + limit - 1)
+          .timeout(const Duration(seconds: 20));
 
       return (response as List)
           .map((item) {

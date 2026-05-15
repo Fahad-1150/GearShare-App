@@ -50,7 +50,7 @@ class GearShareApp extends StatelessWidget {
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: BorderSide(color: Colors.white.withOpacity(0.05)),
+            side: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
           ),
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
@@ -64,9 +64,8 @@ class GearShareApp extends StatelessWidget {
           ),
         ),
       ),
-      initialRoute: '/feed',
+      home: const AuthCheck(),
       routes: {
-        '/': (context) => const LandingPage(),
         '/signin': (context) => const SignInPage(),
         '/signup': (context) => const SignUpPage(),
         '/home': (context) => const HomePage(),
@@ -74,6 +73,28 @@ class GearShareApp extends StatelessWidget {
         '/feed': (context) => const FeedPage(),
       },
     );
+  }
+}
+
+// Auth Check Widget - Determines whether to show SignIn or Feed based on auth state
+class AuthCheck extends StatefulWidget {
+  const AuthCheck({super.key});
+
+  @override
+  State<AuthCheck> createState() => _AuthCheckState();
+}
+
+class _AuthCheckState extends State<AuthCheck> {
+  @override
+  Widget build(BuildContext context) {
+    final currentUser = SupabaseService().getCurrentUser();
+
+    // If user is logged in, show FeedPage, otherwise show SignInPage
+    if (currentUser != null) {
+      return const FeedPage();
+    } else {
+      return const SignInPage();
+    }
   }
 }
 

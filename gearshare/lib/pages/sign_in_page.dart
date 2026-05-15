@@ -27,18 +27,33 @@ class _SignInPageState extends State<SignInPage> {
       _errorMessage = null;
     });
 
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    if (email.isEmpty || password.isEmpty) {
+      setState(() {
+        _errorMessage = 'Please enter both email and password.';
+        _isLoading = false;
+      });
+      return;
+    }
+
     try {
-      await SupabaseService().signIn(
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+      final response = await SupabaseService().signIn(
+        email: email,
+        password: password,
       );
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Signed in successfully!')),
-        );
-        // Navigate to feed page
-        Navigator.of(context).pushReplacementNamed('/feed');
+      if (response.user == null) {
+        setState(() {
+          _errorMessage = 'Sign in failed: no user data was returned.';
+        });
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Signed in successfully!')),
+          );
+          Navigator.of(context).pushReplacementNamed('/feed');
+        }
       }
     } catch (e) {
       setState(() {
@@ -66,7 +81,7 @@ class _SignInPageState extends State<SignInPage> {
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF2C4B7C),
+                color: Color(0xFFE87C31),
               ),
             ),
             const SizedBox(height: 10),

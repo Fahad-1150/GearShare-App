@@ -87,7 +87,7 @@ class _EquipmentDetailsPageState extends State<EquipmentDetailsPage> {
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.6),
+                          color: Colors.black.withValues(alpha: 0.6),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -160,7 +160,7 @@ class _EquipmentDetailsPageState extends State<EquipmentDetailsPage> {
                                     decoration: BoxDecoration(
                                       color: const Color(
                                         0xFFE87C31,
-                                      ).withOpacity(0.2),
+                                      ).withValues(alpha: 0.2),
                                       border: Border.all(
                                         color: const Color(0xFFE87C31),
                                       ),
@@ -210,7 +210,7 @@ class _EquipmentDetailsPageState extends State<EquipmentDetailsPage> {
                       decoration: BoxDecoration(
                         color: _getStatusColor(
                           widget.equipment.status,
-                        ).withOpacity(0.2),
+                        ).withValues(alpha: 0.2),
                         border: Border.all(
                           color: _getStatusColor(widget.equipment.status),
                         ),
@@ -231,7 +231,7 @@ class _EquipmentDetailsPageState extends State<EquipmentDetailsPage> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
+                          color: Colors.green.withValues(alpha: 0.1),
                           border: Border.all(color: Colors.green),
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -413,7 +413,7 @@ class _EquipmentDetailsPageState extends State<EquipmentDetailsPage> {
                                                 BoxShadow(
                                                   color: const Color(
                                                     0xFFE87C31,
-                                                  ).withOpacity(0.5),
+                                                  ).withValues(alpha: 0.5),
                                                   blurRadius: 8,
                                                 ),
                                               ],

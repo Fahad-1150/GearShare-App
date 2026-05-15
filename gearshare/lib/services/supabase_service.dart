@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SupabaseService {
@@ -63,9 +64,12 @@ class SupabaseService {
     required String password,
   }) async {
     try {
-      return await client.auth.signInWithPassword(
-        email: email,
-        password: password,
+      return await client.auth
+          .signInWithPassword(email: email, password: password)
+          .timeout(const Duration(seconds: 20));
+    } on TimeoutException {
+      throw Exception(
+        'Sign in timed out. Check your internet connection and try again.',
       );
     } catch (e) {
       rethrow;
@@ -93,8 +97,11 @@ class SupabaseService {
           .from('users')
           .select()
           .eq('id', userId)
-          .single();
+          .single()
+          .timeout(const Duration(seconds: 20));
       return response;
+    } on TimeoutException {
+      throw Exception('User data request timed out. Please try again later.');
     } catch (e) {
       rethrow;
     }

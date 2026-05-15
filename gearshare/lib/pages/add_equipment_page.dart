@@ -203,7 +203,8 @@ class _AddEquipmentPageState extends State<AddEquipmentPage> {
       context,
       MaterialPageRoute(
         builder: (context) => LocationPickerMap(
-          initialLocation: _locationLatitude != null && _locationLongitude != null
+          initialLocation:
+              _locationLatitude != null && _locationLongitude != null
               ? LatLng(_locationLatitude!, _locationLongitude!)
               : null,
         ),
@@ -288,11 +289,11 @@ class _AddEquipmentPageState extends State<AddEquipmentPage> {
                 padding: const EdgeInsets.symmetric(vertical: 32),
                 decoration: BoxDecoration(
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     width: 2,
                   ),
                   borderRadius: BorderRadius.circular(16),
-                  color: Colors.white.withOpacity(0.02),
+                  color: Colors.white.withValues(alpha: 0.02),
                 ),
                 child: Column(
                   children: [
@@ -328,7 +329,7 @@ class _AddEquipmentPageState extends State<AddEquipmentPage> {
                                   border: Border.all(
                                     color: const Color(
                                       0xFFBB86FC,
-                                    ).withOpacity(0.3),
+                                    ).withValues(alpha: 0.3),
                                     width: 1,
                                   ),
                                 ),
@@ -356,7 +357,7 @@ class _AddEquipmentPageState extends State<AddEquipmentPage> {
                                   onTap: () => _removeImage(index),
                                   child: Container(
                                     decoration: BoxDecoration(
-                                      color: Colors.red.withOpacity(0.8),
+                                      color: Colors.red.withValues(alpha: 0.8),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
                                         color: Colors.white,
@@ -505,14 +506,14 @@ class _AddEquipmentPageState extends State<AddEquipmentPage> {
                 color: const Color(0xFF2A2A2A),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   width: 1,
                 ),
               ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: DropdownButtonFormField<String>(
-                  value: _selectedStatus,
+                  initialValue: _selectedStatus,
                   dropdownColor: const Color(0xFF2A2A2A),
                   decoration: InputDecoration(
                     labelText: 'Status',
@@ -553,7 +554,7 @@ class _AddEquipmentPageState extends State<AddEquipmentPage> {
                       color: const Color(0xFF2A2A2A),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.1),
+                        color: Colors.white.withValues(alpha: 0.1),
                         width: 1,
                       ),
                     ),
@@ -668,7 +669,7 @@ class _AddEquipmentPageState extends State<AddEquipmentPage> {
                     color: const Color(0xFF2A2A2A),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: const Color(0xFFBB86FC).withOpacity(0.3),
+                      color: const Color(0xFFBB86FC).withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),
@@ -724,7 +725,7 @@ class _AddEquipmentPageState extends State<AddEquipmentPage> {
                 color: const Color(0xFF2A2A2A),
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.1),
                   width: 1,
                 ),
               ),
@@ -734,7 +735,7 @@ class _AddEquipmentPageState extends State<AddEquipmentPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFBB86FC).withOpacity(0.1),
+                      color: const Color(0xFFBB86FC).withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
@@ -768,7 +769,7 @@ class _AddEquipmentPageState extends State<AddEquipmentPage> {
                   ),
                   Switch(
                     value: _isPublic,
-                    activeColor: const Color(0xFFBB86FC),
+                    activeThumbColor: const Color(0xFFBB86FC),
                     onChanged: (value) {
                       setState(() => _isPublic = value);
                     },
@@ -822,7 +823,7 @@ class _AddEquipmentPageState extends State<AddEquipmentPage> {
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   side: BorderSide(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     width: 1,
                   ),
                   shape: RoundedRectangleBorder(
@@ -852,10 +853,10 @@ class _AddEquipmentPageState extends State<AddEquipmentPage> {
         Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: const Color(0xFFBB86FC).withOpacity(0.1),
+            color: const Color(0xFFBB86FC).withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: const Color(0xFFBB86FC).withOpacity(0.2),
+              color: const Color(0xFFBB86FC).withValues(alpha: 0.2),
               width: 1,
             ),
           ),
@@ -899,7 +900,10 @@ class _AddEquipmentPageState extends State<AddEquipmentPage> {
       decoration: BoxDecoration(
         color: const Color(0xFF2A2A2A),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.1), width: 1),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.1),
+          width: 1,
+        ),
       ),
       child: TextFormField(
         controller: controller,

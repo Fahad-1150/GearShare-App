@@ -53,7 +53,7 @@ class _DashboardPageState extends State<DashboardPage>
                       end: Alignment.bottomRight,
                       colors: [
                         const Color(0xFF1E1E1E),
-                        const Color(0xFF1E1E1E).withOpacity(0.8),
+                        const Color(0xFF1E1E1E).withValues(alpha: 0.8),
                       ],
                     ),
                   ),
@@ -181,7 +181,7 @@ class _DashboardPageState extends State<DashboardPage>
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFBB86FC).withOpacity(0.1),
+                    color: const Color(0xFFBB86FC).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Icon(
@@ -236,7 +236,7 @@ class _DashboardPageState extends State<DashboardPage>
         decoration: BoxDecoration(
           color: const Color(0xFF1E1E1E),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withOpacity(0.05), width: 1),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -251,8 +251,8 @@ class _DashboardPageState extends State<DashboardPage>
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.black.withOpacity(0),
-                        Colors.black.withOpacity(0.3),
+                        Colors.black.withValues(alpha: 0),
+                        Colors.black.withValues(alpha: 0.3),
                       ],
                       stops: const [0, 1],
                     ).createShader(rect);
@@ -284,7 +284,7 @@ class _DashboardPageState extends State<DashboardPage>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(equipment.status).withOpacity(0.9),
+                      color: _getStatusColor(equipment.status).withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -310,7 +310,7 @@ class _DashboardPageState extends State<DashboardPage>
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.6),
+                        color: Colors.black.withValues(alpha: 0.6),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
@@ -391,10 +391,10 @@ class _DashboardPageState extends State<DashboardPage>
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFBB86FC).withOpacity(0.1),
+                            color: const Color(0xFFBB86FC).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFFBB86FC).withOpacity(0.2),
+                              color: const Color(0xFFBB86FC).withValues(alpha: 0.2),
                               width: 1,
                             ),
                           ),
@@ -431,10 +431,10 @@ class _DashboardPageState extends State<DashboardPage>
                           child: Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
+                              color: Colors.green.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: Colors.green.withOpacity(0.2),
+                                color: Colors.green.withValues(alpha: 0.2),
                                 width: 1,
                               ),
                             ),
@@ -515,7 +515,7 @@ class _DashboardPageState extends State<DashboardPage>
                                 border: Border.all(
                                   color: const Color(
                                     0xFFBB86FC,
-                                  ).withOpacity(0.3),
+                                  ).withValues(alpha: 0.3),
                                   width: 1,
                                 ),
                                 borderRadius: BorderRadius.circular(12),
@@ -556,7 +556,7 @@ class _DashboardPageState extends State<DashboardPage>
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               decoration: BoxDecoration(
                                 border: Border.all(
-                                  color: Colors.red.withOpacity(0.3),
+                                  color: Colors.red.withValues(alpha: 0.3),
                                   width: 1,
                                 ),
                                 borderRadius: BorderRadius.circular(12),
@@ -636,7 +636,7 @@ class _DashboardPageState extends State<DashboardPage>
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.withOpacity(0.2),
+              backgroundColor: Colors.red.withValues(alpha: 0.2),
               foregroundColor: Colors.red,
             ),
             onPressed: () async {
@@ -647,7 +647,7 @@ class _DashboardPageState extends State<DashboardPage>
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: const Text('Equipment deleted'),
-                    backgroundColor: Colors.red.withOpacity(0.8),
+                    backgroundColor: Colors.red.withValues(alpha: 0.8),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
@@ -655,7 +655,7 @@ class _DashboardPageState extends State<DashboardPage>
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Error: $e'),
-                    backgroundColor: Colors.red.withOpacity(0.8),
+                    backgroundColor: Colors.red.withValues(alpha: 0.8),
                     behavior: SnackBarBehavior.floating,
                   ),
                 );
@@ -679,10 +679,10 @@ class _DashboardPageState extends State<DashboardPage>
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFFBB86FC).withOpacity(0.1),
+                color: const Color(0xFFBB86FC).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: const Color(0xFFBB86FC).withOpacity(0.2),
+                  color: const Color(0xFFBB86FC).withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),
@@ -724,10 +724,10 @@ class _DashboardPageState extends State<DashboardPage>
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFF9370DB).withOpacity(0.1),
+                color: const Color(0xFF9370DB).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: const Color(0xFF9370DB).withOpacity(0.2),
+                  color: const Color(0xFF9370DB).withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),
@@ -769,10 +769,10 @@ class _DashboardPageState extends State<DashboardPage>
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
+                color: Colors.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: Colors.green.withOpacity(0.2),
+                  color: Colors.green.withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),

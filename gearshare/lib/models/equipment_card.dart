@@ -122,7 +122,7 @@ class EquipmentCard extends StatelessWidget {
           border: Border.all(color: const Color(0xFFE87C31), width: 2),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFE87C31).withOpacity(0.3),
+              color: const Color(0xFFE87C31).withValues(alpha: 0.3),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),

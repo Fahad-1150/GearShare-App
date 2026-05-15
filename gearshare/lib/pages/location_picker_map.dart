@@ -127,9 +127,9 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E1E1E).withOpacity(0.9),
+                    color: const Color(0xFF1E1E1E).withValues(alpha: 0.9),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                   ),
                   child: Column(
                     children: [
@@ -183,7 +183,7 @@ class _LocationPickerMapState extends State<LocationPickerMap> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      side: BorderSide(color: Colors.white.withOpacity(0.2)),
+                      side: BorderSide(color: Colors.white.withValues(alpha: 0.2)),
                     ),
                     child: Text('Cancel', style: TextStyle(color: Colors.grey[400])),
                   ),
