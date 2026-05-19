@@ -6,6 +6,7 @@ import '../services/equipment_service.dart';
 import 'equipment_details_page.dart';
 import '../services/supabase_service.dart';
 import 'dashboard_page.dart';
+import 'chat_page.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -828,7 +829,12 @@ class _FeedPageState extends State<FeedPage> {
             icon: Icons.message_outlined,
             title: 'Messages',
             subtitle: 'Chat with other users about equipment',
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ChatPage()),
+              );
+            },
           ),
           const SizedBox(height: 12),
           _buildProfileActionRow(

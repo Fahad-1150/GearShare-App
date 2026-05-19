@@ -2,7 +2,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/equipment.dart';
+import '../services/chat_service.dart';
+import 'chat_detail_page.dart';
 
 class EquipmentDetailsPage extends StatefulWidget {
   final Equipment equipment;
@@ -22,6 +25,8 @@ class _EquipmentDetailsPageState extends State<EquipmentDetailsPage> {
     super.initState();
     _mapController = MapController();
   }
+
+  final ChatService _chatService = ChatService();
 
   @override
   void dispose() {
@@ -509,16 +514,7 @@ class _EquipmentDetailsPageState extends State<EquipmentDetailsPage> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Contact owner feature coming soon (Owner ID: ${widget.equipment.ownerId})',
-                              ),
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        },
+                        onPressed: () => _startChat(),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           side: const BorderSide(color: Color(0xFFE87C31)),
@@ -527,11 +523,11 @@ class _EquipmentDetailsPageState extends State<EquipmentDetailsPage> {
                           ),
                         ),
                         icon: const Icon(
-                          Icons.mail_outline,
+                          Icons.message,
                           color: Color(0xFFE87C31),
                         ),
                         label: const Text(
-                          'Contact Owner',
+                          'Message Owner',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -685,5 +681,71 @@ class _EquipmentDetailsPageState extends State<EquipmentDetailsPage> {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  Future<void> _startChat() async {
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to message the owner.')),
+      );
+      return;
+    }
+
+    if (currentUser.id == widget.equipment.ownerId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You cannot message yourself.')),
+      );
+      return;
+    }
+
+    final currentUserName =
+        currentUser.userMetadata?['full_name'] ??
+        currentUser.email?.split('@')[0] ??
+        'User';
+
+    final ownerName = widget.equipment.ownerName ?? 'Owner';
+    final ownerAvatar = widget.equipment.ownerAvatar ?? '';
+    final currentUserAvatar = currentUser.userMetadata?['avatar_url'] ?? '';
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFBB86FC)),
+        ),
+      ),
+    );
+
+    try {
+      final chat = await _chatService.getOrCreateChat(
+        user1Id: currentUser.id,
+        user2Id: widget.equipment.ownerId,
+        user1Name: currentUserName,
+        user2Name: ownerName,
+        user1Avatar: currentUserAvatar,
+        user2Avatar: ownerAvatar,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ChatDetailPage(
+            chat: chat,
+            currentUserId: currentUser.id,
+            currentUserName: currentUserName,
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Unable to open chat: $e')));
+    }
   }
 }

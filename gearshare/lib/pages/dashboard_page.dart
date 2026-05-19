@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/equipment.dart';
 import '../services/equipment_service.dart';
 import 'add_equipment_page.dart';
+import 'chat_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -94,7 +95,7 @@ class _DashboardPageState extends State<DashboardPage>
                       Tab(icon: Icon(Icons.inventory), text: 'My Gear'),
                       Tab(icon: Icon(Icons.add_circle_outline), text: 'Add'),
                       Tab(icon: Icon(Icons.bar_chart), text: 'Analytics'),
-                      Tab(icon: Icon(Icons.mail), text: 'Requests'),
+                      Tab(icon: Icon(Icons.message), text: 'Messages'),
                       Tab(icon: Icon(Icons.history), text: 'History'),
                     ],
                   ),
@@ -112,8 +113,8 @@ class _DashboardPageState extends State<DashboardPage>
             const AddEquipmentPage(),
             // Tab 3: Analytics/Charting
             _buildAnalyticsTab(),
-            // Tab 4: Requests to me
-            _buildRequestsTab(),
+            // Tab 4: Messages
+            const ChatPage(),
             // Tab 5: Rental History
             _buildHistoryTab(),
           ],
@@ -236,7 +237,10 @@ class _DashboardPageState extends State<DashboardPage>
         decoration: BoxDecoration(
           color: const Color(0xFF1E1E1E),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.05),
+            width: 1,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -284,7 +288,9 @@ class _DashboardPageState extends State<DashboardPage>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(equipment.status).withValues(alpha: 0.9),
+                      color: _getStatusColor(
+                        equipment.status,
+                      ).withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -391,10 +397,14 @@ class _DashboardPageState extends State<DashboardPage>
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFBB86FC).withValues(alpha: 0.1),
+                            color: const Color(
+                              0xFFBB86FC,
+                            ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFFBB86FC).withValues(alpha: 0.2),
+                              color: const Color(
+                                0xFFBB86FC,
+                              ).withValues(alpha: 0.2),
                               width: 1,
                             ),
                           ),
@@ -704,51 +714,6 @@ class _DashboardPageState extends State<DashboardPage>
             const SizedBox(height: 8),
             Text(
               'Track your rental statistics,\nearnings, and trends',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[400], height: 1.6),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Requests to Me Section
-  Widget _buildRequestsTab() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF9370DB).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFF9370DB).withValues(alpha: 0.2),
-                  width: 1,
-                ),
-              ),
-              child: const Icon(
-                Icons.mail_outline,
-                size: 64,
-                color: Color(0xFF9370DB),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Rental Requests Coming Soon',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'View and manage rental\nrequests for your equipment',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey[400], height: 1.6),
             ),
