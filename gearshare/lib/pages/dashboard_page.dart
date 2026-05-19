@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/equipment.dart';
 import '../services/equipment_service.dart';
 import 'add_equipment_page.dart';
+import 'chat_page.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
@@ -30,6 +31,74 @@ class _DashboardPageState extends State<DashboardPage>
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Widget _buildPlaceholder() {
+    return Container(
+      color: Colors.grey[900],
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.image_not_supported_outlined,
+              color: Colors.grey[600],
+              size: 32,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'No image',
+              style: TextStyle(color: Colors.grey[600], fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEquipmentImage(String? imageData) {
+    if (imageData == null || imageData.trim().isEmpty)
+      return _buildPlaceholder();
+
+    final s = imageData.trim();
+
+    // Heuristics for base64 vs network
+    if (s.startsWith('data:image') ||
+        s.startsWith('iVBOR') ||
+        s.startsWith('/9j/') ||
+        (s.contains(',') && !s.contains('http'))) {
+      try {
+        var base64Data = s;
+        if (s.contains(',')) {
+          base64Data = s.split(',').last;
+        }
+        final bytes = convert.base64Decode(base64Data.replaceAll('\n', ''));
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: double.infinity,
+          errorBuilder: (_, __, ___) => _buildPlaceholder(),
+        );
+      } catch (e) {
+        return _buildPlaceholder();
+      }
+    }
+
+    // Fallback to network image
+    return Image.network(
+      s,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return const Center(
+          child: CircularProgressIndicator(color: Color(0xFFBB86FC)),
+        );
+      },
+      errorBuilder: (_, __, ___) => _buildPlaceholder(),
+    );
   }
 
   @override
@@ -94,26 +163,25 @@ class _DashboardPageState extends State<DashboardPage>
                       Tab(icon: Icon(Icons.inventory), text: 'My Gear'),
                       Tab(icon: Icon(Icons.add_circle_outline), text: 'Add'),
                       Tab(icon: Icon(Icons.bar_chart), text: 'Analytics'),
-                      Tab(icon: Icon(Icons.mail), text: 'Requests'),
+                      Tab(icon: Icon(Icons.message_outlined), text: 'Messages'),
                       Tab(icon: Icon(Icons.history), text: 'History'),
                     ],
                   ),
                 ),
               ),
-            ),
-          ];
-        },
-        body: TabBarView(
-          controller: _tabController,
-          children: [
+            ];
+          },
+          body: TabBarView(
+            controller: _tabController,
+            children: [
             // Tab 1: My Equipment
             _buildMyEquipmentTab(),
             // Tab 2: Add Equipment
             const AddEquipmentPage(),
             // Tab 3: Analytics/Charting
             _buildAnalyticsTab(),
-            // Tab 4: Requests to me
-            _buildRequestsTab(),
+            // Tab 4: Messages
+            const ChatPage(),
             // Tab 5: Rental History
             _buildHistoryTab(),
           ],
@@ -236,7 +304,10 @@ class _DashboardPageState extends State<DashboardPage>
         decoration: BoxDecoration(
           color: const Color(0xFF1E1E1E),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.05),
+            width: 1,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,10 +333,7 @@ class _DashboardPageState extends State<DashboardPage>
                     height: 200,
                     color: const Color(0xFF2A2A2A),
                     child: equipment.images.isNotEmpty
-                        ? Image.memory(
-                            convert.base64Decode(equipment.images.first),
-                            fit: BoxFit.cover,
-                          )
+                        ? _buildEquipmentImage(equipment.images.first)
                         : Icon(
                             Icons.image_not_supported_outlined,
                             size: 64,
@@ -284,7 +352,9 @@ class _DashboardPageState extends State<DashboardPage>
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(equipment.status).withValues(alpha: 0.9),
+                      color: _getStatusColor(
+                        equipment.status,
+                      ).withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -391,10 +461,14 @@ class _DashboardPageState extends State<DashboardPage>
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFBB86FC).withValues(alpha: 0.1),
+                            color: const Color(
+                              0xFFBB86FC,
+                            ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFFBB86FC).withValues(alpha: 0.2),
+                              color: const Color(
+                                0xFFBB86FC,
+                              ).withValues(alpha: 0.2),
                               width: 1,
                             ),
                           ),
@@ -505,9 +579,7 @@ class _DashboardPageState extends State<DashboardPage>
                         child: Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () {
-                              // TODO: Edit equipment
-                            },
+                            onTap: () => _showEditDialog(equipment),
                             borderRadius: BorderRadius.circular(12),
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -610,6 +682,320 @@ class _DashboardPageState extends State<DashboardPage>
     }
   }
 
+  // Show Edit Dialog
+  void _showEditDialog(Equipment equipment) {
+    final nameController = TextEditingController(text: equipment.name);
+    final priceController = TextEditingController(
+      text: equipment.perDayPrice.toString(),
+    );
+    final descriptionController = TextEditingController(
+      text: equipment.description ?? '',
+    );
+    final categoryController = TextEditingController(
+      text: equipment.category ?? '',
+    );
+    final discountController = TextEditingController(
+      text: equipment.discountPercentage.toString(),
+    );
+    final discountDaysController = TextEditingController(
+      text: equipment.discountMinDays.toString(),
+    );
+    final locationController = TextEditingController(
+      text: equipment.locationName ?? '',
+    );
+    final pickupAddressController = TextEditingController(
+      text: equipment.pickupAddress ?? '',
+    );
+
+    String selectedStatus = equipment.status;
+    DateTime? selectedAvailableFrom = equipment.availableFrom;
+    bool isPublic = equipment.isPublic;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          backgroundColor: const Color(0xFF1E1E1E),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Text(
+            'Edit Equipment',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Equipment Name',
+                    labelStyle: TextStyle(color: Colors.grey[400]),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey[600]!),
+                    ),
+                    focusedBorder: const UnderlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFFBB86FC)),
+                    ),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: categoryController,
+                  decoration: InputDecoration(
+                    labelText: 'Category',
+                    labelStyle: TextStyle(color: Colors.grey[400]),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey[600]!),
+                    ),
+                    focusedBorder: const UnderlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFFBB86FC)),
+                    ),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: priceController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Price per Day (TK)',
+                    labelStyle: TextStyle(color: Colors.grey[400]),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey[600]!),
+                    ),
+                    focusedBorder: const UnderlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFFBB86FC)),
+                    ),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    labelText: 'Description',
+                    labelStyle: TextStyle(color: Colors.grey[400]),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey[600]!),
+                    ),
+                    focusedBorder: const UnderlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFFBB86FC)),
+                    ),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: locationController,
+                  decoration: InputDecoration(
+                    labelText: 'Location Name',
+                    labelStyle: TextStyle(color: Colors.grey[400]),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey[600]!),
+                    ),
+                    focusedBorder: const UnderlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFFBB86FC)),
+                    ),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: pickupAddressController,
+                  maxLines: 2,
+                  decoration: InputDecoration(
+                    labelText: 'Pickup Address',
+                    labelStyle: TextStyle(color: Colors.grey[400]),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey[600]!),
+                    ),
+                    focusedBorder: const UnderlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFFBB86FC)),
+                    ),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: discountController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Discount %',
+                    labelStyle: TextStyle(color: Colors.grey[400]),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey[600]!),
+                    ),
+                    focusedBorder: const UnderlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFFBB86FC)),
+                    ),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: discountDaysController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'Discount Min Days',
+                    labelStyle: TextStyle(color: Colors.grey[400]),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: Colors.grey[600]!),
+                    ),
+                    focusedBorder: const UnderlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFFBB86FC)),
+                    ),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey[600]!),
+                    ),
+                  ),
+                  child: DropdownButton<String>(
+                    value: selectedStatus,
+                    isExpanded: true,
+                    dropdownColor: const Color(0xFF1E1E1E),
+                    style: const TextStyle(color: Colors.white),
+                    underline: const SizedBox.shrink(),
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'available',
+                        child: Text('Available'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'unavailable',
+                        child: Text('Unavailable'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'available_from',
+                        child: Text('Available From'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() => selectedStatus = value ?? 'available');
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (selectedStatus == 'available_from')
+                  GestureDetector(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedAvailableFrom ?? DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2099),
+                      );
+                      if (picked != null) {
+                        setState(() => selectedAvailableFrom = picked);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 12,
+                        horizontal: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(color: Colors.grey[600]!),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            selectedAvailableFrom == null
+                                ? 'Select Available From'
+                                : 'Available From: ${selectedAvailableFrom!.toLocal().toString().split(' ')[0]}',
+                            style: const TextStyle(color: Colors.white),
+                          ),
+                          const Icon(
+                            Icons.calendar_today,
+                            color: Color(0xFFBB86FC),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Public', style: TextStyle(color: Colors.white)),
+                    Switch(
+                      value: isPublic,
+                      onChanged: (value) => setState(() => isPublic = value),
+                      activeColor: const Color(0xFFBB86FC),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Cancel', style: TextStyle(color: Colors.grey[400])),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFBB86FC),
+              ),
+              onPressed: () async {
+                Navigator.pop(context);
+                try {
+                  await _equipmentService.updateEquipment(
+                    equipmentId: equipment.id,
+                    name: nameController.text,
+                    category: categoryController.text,
+                    perDayPrice: double.parse(priceController.text),
+                    description: descriptionController.text,
+                    locationName: locationController.text,
+                    pickupAddress: pickupAddressController.text,
+                    discountPercentage: int.parse(discountController.text),
+                    discountMinDays: int.parse(discountDaysController.text),
+                    status: selectedStatus,
+                    availableFrom: selectedAvailableFrom,
+                    isPublic: isPublic,
+                  );
+                  setState(() {});
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Equipment updated successfully'),
+                      backgroundColor: Colors.green.withValues(alpha: 0.8),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red.withValues(alpha: 0.8),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Delete Equipment
   void _deleteEquipment(String equipmentId) {
     showDialog(
@@ -704,51 +1090,6 @@ class _DashboardPageState extends State<DashboardPage>
             const SizedBox(height: 8),
             Text(
               'Track your rental statistics,\nearnings, and trends',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[400], height: 1.6),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Requests to Me Section
-  Widget _buildRequestsTab() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF9370DB).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFF9370DB).withValues(alpha: 0.2),
-                  width: 1,
-                ),
-              ),
-              child: const Icon(
-                Icons.mail_outline,
-                size: 64,
-                color: Color(0xFF9370DB),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Rental Requests Coming Soon',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'View and manage rental\nrequests for your equipment',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey[400], height: 1.6),
             ),

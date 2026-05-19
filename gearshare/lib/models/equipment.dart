@@ -1,6 +1,8 @@
 class Equipment {
   final String id;
   final String ownerId;
+  final String? ownerName;
+  final String? ownerAvatar;
   final String name;
   final String? description;
   final String? category;
@@ -21,6 +23,8 @@ class Equipment {
   Equipment({
     required this.id,
     required this.ownerId,
+    this.ownerName,
+    this.ownerAvatar,
     required this.name,
     this.description,
     this.category,
@@ -53,6 +57,8 @@ class Equipment {
     return Equipment(
       id: json['id'] as String,
       ownerId: json['owner_id'] as String,
+      ownerName: json['owner_name'] as String?,
+      ownerAvatar: json['owner_avatar'] as String?,
       name: json['name'] as String,
       description: json['description'] as String?,
       category: json['category'] as String?,
@@ -79,6 +85,8 @@ class Equipment {
     return {
       'id': id,
       'owner_id': ownerId,
+      'owner_name': ownerName,
+      'owner_avatar': ownerAvatar,
       'name': name,
       'description': description,
       'category': category,
@@ -114,5 +122,6 @@ class Equipment {
   }
 
   @override
-  String toString() => 'Equipment(id: $id, name: $name, price: TK $perDayPrice)';
+  String toString() =>
+      'Equipment(id: $id, name: $name, price: TK $perDayPrice)';
 }

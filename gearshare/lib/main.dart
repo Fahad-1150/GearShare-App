@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'landingPage.dart';
 import 'pages/sign_in_page.dart';
 import 'pages/sign_up_page.dart';
 import 'pages/dashboard_page.dart';
@@ -9,14 +8,6 @@ import 'services/supabase_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Supabase
-  await Supabase.initialize(
-    url: 'https://nhataoydgtqovvznijrx.supabase.co',
-    anonKey:
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oYXRhb3lkZ3Rxb3Z2em5panJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MjQzMTQsImV4cCI6MjA5MTMwMDMxNH0.0jsJsdCOLxVciiYxB6cehdtQCPAC78DFzGGpU5RzpwM',
-  );
-
   runApp(const GearShareApp());
 }
 
@@ -64,13 +55,99 @@ class GearShareApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const AuthCheck(),
+      home: const SupabaseInitializer(),
       routes: {
         '/signin': (context) => const SignInPage(),
         '/signup': (context) => const SignUpPage(),
         '/home': (context) => const HomePage(),
         '/dashboard': (context) => const DashboardPage(),
         '/feed': (context) => const FeedPage(),
+      },
+    );
+  }
+}
+
+class SupabaseInitializer extends StatefulWidget {
+  const SupabaseInitializer({super.key});
+
+  @override
+  State<SupabaseInitializer> createState() => _SupabaseInitializerState();
+}
+
+class _SupabaseInitializerState extends State<SupabaseInitializer> {
+  late Future<bool> _initialization;
+
+  @override
+  void initState() {
+    super.initState();
+    _initialization = _initializeSupabase();
+  }
+
+  Future<bool> _initializeSupabase() async {
+    try {
+      await Supabase.initialize(
+        url: 'https://nhataoydgtqovvznijrx.supabase.co',
+        anonKey:
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5oYXRhb3lkZ3Rxb3Z2em5panJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MjQzMTQsImV4cCI6MjA5MTMwMDMxNH0.0jsJsdCOLxVciiYxB6cehdtQCPAC78DFzGGpU5RzpwM',
+      ).timeout(const Duration(seconds: 20));
+      return true;
+    } catch (e) {
+      debugPrint('Supabase initialization failed: $e');
+      return false;
+    }
+  }
+
+  void _retry() {
+    setState(() {
+      _initialization = _initializeSupabase();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<bool>(
+      future: _initialization,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError || snapshot.data != true) {
+          return Scaffold(
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Unable to connect to Supabase.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Check your internet connection and try again.',
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: _retry,
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        return const AuthCheck();
       },
     );
   }

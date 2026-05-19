@@ -44,25 +44,27 @@ class _SignInPageState extends State<SignInPage> {
       );
 
       if (response.user == null) {
-        setState(() {
-          _errorMessage = 'Sign in failed: no user data was returned.';
-        });
-      } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Signed in successfully!')),
-          );
-          Navigator.of(context).pushReplacementNamed('/feed');
+          setState(() {
+            _errorMessage = 'Sign in failed: no user data was returned.';
+          });
         }
+      } else {
+        if (!mounted) return;
+        Navigator.of(context).pushReplacementNamed('/feed');
       }
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Sign in failed: ${e.toString()}';
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Sign in failed: ${e.toString()}';
+        });
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 

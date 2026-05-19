@@ -1,0 +1,499 @@
+# Chat System Architecture & Flow Diagrams
+
+## System Architecture Diagram
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                    GEARSHARE APP (Flutter)                     │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  ┌─────────────────────────┐        ┌──────────────────────┐ │
+│  │   Dashboard Page        │        │   Other Pages        │ │
+│  │  ┌─────────────────────┐│        │  - Equipment         │ │
+│  │  │ My Gear      │   Add││        │  - Profile           │ │
+│  │  │ Analytics    │Messages│ ◄──┐  │  - Feed              │ │
+│  │  │ History      │       ││    │  │                      │ │
+│  │  └─────────────────────┘│    │  └──────────────────────┘ │
+│  └─────────────────────────┘    │                            │
+│           │                      │                            │
+│           └──► ChatPage ◄────────┘                            │
+│               (Chat List)                                     │
+│                   │                                           │
+│                   └──► ChatDetailPage                         │
+│                       (Conversation)                          │
+│                                                                │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │            ChatService (Singleton)                    │  │
+│  │  ┌──────────────────────────────────────────────────┐ │  │
+│  │  │ - getOrCreateChat()                            │ │  │
+│  │  │ - getUserChats()                               │ │  │
+│  │  │ - sendMessage()                                │ │  │
+│  │  │ - getChatMessages()                            │ │  │
+│  │  │ - subscribeToMessages()                        │ │  │
+│  │  │ - markMessageAsRead()                          │ │  │
+│  │  │ - deleteChat()                                 │ │  │
+│  │  └──────────────────────────────────────────────────┘ │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                           │                                   │
+└───────────────────────────┼───────────────────────────────────┘
+                            │
+                            │ HTTP/Supabase Client
+                            ▼
+        ┌───────────────────────────────────┐
+        │      SUPABASE (Backend)           │
+        │   PostgreSQL Database + Auth      │
+        ├───────────────────────────────────┤
+        │                                   │
+        │  ┌─────────────────────────────┐ │
+        │  │    chats table              │ │
+        │  │  ├─ id (PK)                 │ │
+        │  │  ├─ user1_id, user2_id      │ │
+        │  │  ├─ last_message            │ │
+        │  │  └─ timestamps              │ │
+        │  └─────────────────────────────┘ │
+        │                                   │
+        │  ┌─────────────────────────────┐ │
+        │  │    messages table           │ │
+        │  │  ├─ id (PK)                 │ │
+        │  │  ├─ chat_id (FK)            │ │
+        │  │  ├─ sender_id, content      │ │
+        │  │  └─ created_at              │ │
+        │  └─────────────────────────────┘ │
+        │                                   │
+        │  ┌─────────────────────────────┐ │
+        │  │  RLS Policies (Security)    │ │
+        │  │  ├─ Users see own chats     │ │
+        │  │  ├─ Users see own messages  │ │
+        │  │  ├─ Users send to own chats │ │
+        │  │  └─ No data leakage         │ │
+        │  └─────────────────────────────┘ │
+        │                                   │
+        │  ┌─────────────────────────────┐ │
+        │  │  Real-Time Subscriptions    │ │
+        │  │  ├─ Listen for new messages │ │
+        │  │  ├─ Auto-push to clients    │ │
+        │  │  └─ < 100ms latency         │ │
+        │  └─────────────────────────────┘ │
+        │                                   │
+        └───────────────────────────────────┘
+```
+
+---
+
+## Message Flow Diagram
+
+### Sending a Message
+
+```
+┌──────────────┐
+│  User types  │
+│  message     │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────────────────┐
+│ ChatDetailPage           │
+│ - TextEditingController  │
+│ - validates input        │
+└──────┬───────────────────┘
+       │
+       ▼
+┌──────────────────────────┐
+│ User taps Send button    │
+│ - calls _sendMessage()   │
+└──────┬───────────────────┘
+       │
+       ▼
+┌──────────────────────────────────────┐
+│ ChatService.sendMessage()            │
+│ - creates Message object             │
+│ - generates unique ID                │
+│ - calls Supabase insert              │
+└──────┬───────────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────────┐
+│ Supabase (Backend)                   │
+│ - inserts into messages table        │
+│ - triggers RLS policy check          │
+│ - broadcasts to subscribers          │
+│ - updates chats table (last message) │
+└──────┬───────────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────────┐
+│ Real-Time Stream                     │
+│ - subscribeToMessages() receives     │
+│ - new message in subscription        │
+└──────┬───────────────────────────────┘
+       │
+       ├──────────────────────────────┐
+       │                              │
+       ▼                              ▼
+┌─────────────────┐         ┌──────────────────────┐
+│ Sender's App    │         │ Receiver's App       │
+│ - message added │         │ - message received   │
+│  to stream      │         │ - UI updates         │
+│ - UI displays   │         │ - message displayed  │
+│  new message    │         │ - timestamp shown    │
+│ - scrolls to    │         │ - sender identified  │
+│  bottom         │         │ - sound/notification │
+└─────────────────┘         └──────────────────────┘
+```
+
+---
+
+## Chat Creation Flow
+
+```
+User A wants to message User B
+
+┌────────────────────────────────────┐
+│ Equipment Details Page             │
+│ [Message Owner] button clicked     │
+└────────┬──────────────────────────┘
+         │
+         ▼
+┌────────────────────────────────────┐
+│ _startChat() method                │
+│ - gets User A details              │
+│ - gets User B details              │
+│ - calls ChatService                │
+└────────┬──────────────────────────┘
+         │
+         ▼
+┌────────────────────────────────────┐
+│ ChatService.getOrCreateChat()      │
+│ - searches for existing chat       │
+└────────┬──────────────────────────┘
+         │
+    ┌────┴─────┐
+    │           │
+    ▼           ▼
+  Found?      Not Found?
+    │           │
+    │           ▼
+    │    ┌─────────────────────┐
+    │    │ Create new chat:    │
+    │    │ - generate ID       │
+    │    │ - insert to DB      │
+    │    │ - return Chat object│
+    │    └──────┬──────────────┘
+    │           │
+    ├───────────┤
+    │           │
+    ▼           ▼
+┌────────────────────────────────────┐
+│ Return Chat object to caller       │
+└────────┬──────────────────────────┘
+         │
+         ▼
+┌────────────────────────────────────┐
+│ Navigate to ChatDetailPage         │
+│ - pass Chat object                 │
+│ - pass user details                │
+│ - ready for messaging              │
+└────────────────────────────────────┘
+```
+
+---
+
+## Real-Time Update Flow
+
+```
+When a message arrives...
+
+┌─────────────────────────────────────┐
+│ Message sent to database            │
+│ (Supabase PostgreSQL)               │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+┌─────────────────────────────────────┐
+│ Real-Time Subscription triggered    │
+│ (WebSocket broadcast)               │
+└──────────────┬──────────────────────┘
+               │
+               ├──────────┬───────────────┬──────────┐
+               │          │               │          │
+               ▼          ▼               ▼          ▼
+        ┌──────────┐ ┌─────────┐  ┌──────────┐  ┌─────────┐
+        │Sender    │ │Receiver │  │Receiver2 │  │Receiver3│
+        │(Online)  │ │(Online) │  │(Offline) │  │(Offline)│
+        └────┬─────┘ └────┬────┘  └──────────┘  └─────────┘
+             │            │
+             ▼            ▼
+      ┌─────────────┐ ┌──────────────────┐
+      │Stream       │ │Stream            │
+      │receives     │ │receives          │
+      │update       │ │update            │
+      └─────┬───────┘ └────┬─────────────┘
+            │              │
+            ▼              ▼
+      ┌─────────────────┐ ┌──────────────────────┐
+      │UI rebuilds      │ │UI rebuilds           │
+      │- adds message   │ │- adds message        │
+      │- scrolls to it  │ │- shows notification  │
+      │- updates stream │ │- might show badge    │
+      └─────────────────┘ └──────────────────────┘
+```
+
+---
+
+## Data Model Relationships
+
+```
+┌──────────────────────────────────┐
+│      auth.users (Supabase)       │
+│  ┌────────────────────────────┐ │
+│  │ id (UUID) - Primary Key    │ │
+│  │ email                      │ │
+│  │ full_name                  │ │
+│  └────────────────────────────┘ │
+└─────────────┬────────────────────┘
+              │ │ (One-to-Many)
+    ┌─────────┴─┴────────────┐
+    │                        │
+    ▼                        ▼
+┌────────────────┐     ┌──────────────────┐
+│   chats table  │     │ messages table   │
+│ ┌────────────┐ │     │ ┌──────────────┐ │
+│ │ id (PK)    │ │     │ │ id (PK)      │ │
+│ │ user1_id   ├──┐    │ │ chat_id (FK) ├──┐
+│ │ user2_id   │  │    │ │ sender_id    │  │
+│ │ last_msg   │  │    │ │ content      │  │
+│ │ timestamps │  │    │ │ created_at   │  │
+│ └────────────┘ │    │ │ is_read      │  │
+└────────────────┘     │ └──────────────┘ │
+        │              └──────────────────┘
+        │                    ▲
+        └────────────────────┘
+     One-to-Many
+     (1 chat : many messages)
+```
+
+---
+
+## State Management Flow
+
+```
+ChatDetailPage State
+│
+├─ _messageController: TextEditingController
+│  └─ Manages message input text
+│
+├─ _scrollController: ScrollController
+│  └─ Manages scroll to bottom
+│
+├─ _messagesStream: Stream<List<Message>>
+│  ├─ Real-time subscription
+│  ├─ Updates when new messages arrive
+│  └─ Feeds StreamBuilder
+│
+└─ StreamBuilder
+   ├─ Listens to _messagesStream
+   ├─ Rebuilds on new data
+   ├─ Shows loading state
+   ├─ Shows error state
+   └─ Displays messages
+```
+
+---
+
+## Authentication & Authorization Flow
+
+```
+┌──────────────────────────────────────┐
+│ User Action: Send Message            │
+└──────┬───────────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────────┐
+│ ChatService.sendMessage()            │
+│ - gets Supabase.instance.client      │
+│ - no auth passed (auto from session) │
+└──────┬───────────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────────┐
+│ Supabase Backend                     │
+│ - gets auth.uid() from JWT token    │
+│ - runs INSERT with RLS policy       │
+└──────┬───────────────────────────────┘
+       │
+       ▼
+┌──────────────────────────────────────┐
+│ RLS Policy Check:                    │
+│ sender_id == auth.uid()              │
+│ AND chat exists for this user        │
+└──────┬───────────────────────────────┘
+       │
+    ┌──┴──┐
+    │     │
+    ▼     ▼
+ PASS   FAIL
+    │     │
+    │     ▼
+    │  ┌──────────────────┐
+    │  │ Permission Denied│
+    │  │ Error returned   │
+    │  └──────────────────┘
+    │
+    ▼
+┌──────────────────────────────────────┐
+│ INSERT successful                    │
+│ Message saved to database            │
+│ Real-time broadcast triggered        │
+└──────────────────────────────────────┘
+```
+
+---
+
+## Performance Optimization
+
+```
+ChatService
+│
+├─ Database Indexes (Speed up queries)
+│  ├─ idx_chats_user1_id
+│  ├─ idx_chats_user2_id
+│  ├─ idx_chats_last_message_time
+│  ├─ idx_messages_chat_id
+│  ├─ idx_messages_sender_id
+│  └─ idx_messages_created_at
+│
+├─ Pagination (Limit data transfer)
+│  ├─ getChatMessages(..., limit: 50)
+│  └─ Load more on scroll
+│
+├─ Selective Subscriptions
+│  ├─ Only subscribe to current chat
+│  ├─ Unsubscribe when leaving
+│  └─ No unnecessary streams
+│
+└─ Efficient UI Updates
+   ├─ StreamBuilder for real-time
+   ├─ ListView with keys
+   └─ Memory efficient rendering
+```
+
+---
+
+## Security Layers
+
+```
+┌────────────────────────────────────────┐
+│ Layer 1: Authentication                │
+│ - User must be logged in               │
+│ - JWT token required                   │
+│ - Token validated on each request      │
+└────┬───────────────────────────────────┘
+     │
+     ▼
+┌────────────────────────────────────────┐
+│ Layer 2: Row Level Security (RLS)      │
+│ - Check: user_id == auth.uid()         │
+│ - Check: chat exists for user          │
+│ - Check: sender_id == auth.uid()       │
+│ - Prevent unauthorized access          │
+└────┬───────────────────────────────────┘
+     │
+     ▼
+┌────────────────────────────────────────┐
+│ Layer 3: Database Constraints          │
+│ - Foreign keys (referential integrity) │
+│ - NOT NULL constraints                 │
+│ - Unique constraints                   │
+│ - Check constraints                    │
+└────┬───────────────────────────────────┘
+     │
+     ▼
+┌────────────────────────────────────────┐
+│ Layer 4: HTTPS Transport               │
+│ - Encrypted in transit                 │
+│ - TLS/SSL handshake                    │
+│ - Certificate verification             │
+└────────────────────────────────────────┘
+```
+
+---
+
+## Deployment Architecture
+
+```
+┌──────────────────────────────────────────────────┐
+│            User Devices                          │
+│   ┌─────────────┐  ┌─────────────┐              │
+│   │ iOS App     │  │ Android App │              │
+│   │ (Flutter)   │  │ (Flutter)   │              │
+│   └──────┬──────┘  └──────┬──────┘              │
+└──────────┼─────────────────┼────────────────────┘
+           │                 │
+           │ HTTPS          │
+           └────────┬────────┘
+                    │
+        ┌───────────▼──────────────┐
+        │   Supabase             │
+        │   (Cloud Backend)       │
+        │ ┌─────────────────────┐ │
+        │ │ PostgreSQL Database │ │
+        │ │ - chats table       │ │
+        │ │ - messages table    │ │
+        │ │ - RLS policies      │ │
+        │ │ - Indexes           │ │
+        │ └─────────────────────┘ │
+        │ ┌─────────────────────┐ │
+        │ │ Authentication      │ │
+        │ │ - JWT tokens        │ │
+        │ │ - Session mgmt      │ │
+        │ └─────────────────────┘ │
+        │ ┌─────────────────────┐ │
+        │ │ Real-Time Engine    │ │
+        │ │ - WebSocket         │ │
+        │ │ - Subscriptions     │ │
+        │ │ - Broadcasting      │ │
+        │ └─────────────────────┘ │
+        └───────────────────────────┘
+```
+
+---
+
+## File Structure & Dependencies
+
+```
+gearshare/lib/
+│
+├── models/
+│   ├── chat.dart              ◄─── imports Dart core
+│   ├── message.dart           ◄─── imports Dart core
+│   └── equipment.dart
+│
+├── services/
+│   ├── chat_service.dart      ◄─── imports supabase_flutter
+│   │                                imports models
+│   ├── equipment_service.dart
+│   └── location_service.dart
+│
+├── pages/
+│   ├── chat_page.dart         ◄─── imports flutter
+│   │                                imports chat_service
+│   │                                imports chat_detail_page
+│   │
+│   ├── chat_detail_page.dart  ◄─── imports flutter
+│   │                                imports chat_service
+│   │                                imports models
+│   │
+│   ├── dashboard_page.dart    ◄─── imports chat_page (UPDATED)
+│   ├── equipment_details_page.dart
+│   ├── add_equipment_page.dart
+│   └── ...
+│
+├── main.dart
+└── ...
+```
+
+---
+
+**Architecture Version:** 1.0
+**Created:** May 19, 2026
+**Status:** Production Ready ✅

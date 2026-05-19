@@ -54,6 +54,15 @@ class SupabaseService {
 
       return response;
     } catch (e) {
+      if (e is AuthApiException) {
+        if (e.statusCode == 429 ||
+            e.message?.toLowerCase().contains('rate limit') == true) {
+          throw Exception(
+            'Too many verification emails were sent. Please wait a few minutes and try again.',
+          );
+        }
+        throw Exception('Sign up failed: ${e.message ?? e.toString()}');
+      }
       rethrow;
     }
   }

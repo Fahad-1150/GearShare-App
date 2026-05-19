@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -6,6 +8,7 @@ import '../services/equipment_service.dart';
 import 'equipment_details_page.dart';
 import '../services/supabase_service.dart';
 import 'dashboard_page.dart';
+import 'chat_page.dart';
 
 class FeedPage extends StatefulWidget {
   const FeedPage({super.key});
@@ -140,10 +143,17 @@ class _FeedPageState extends State<FeedPage> {
         _error = null;
       });
 
+      final currentUser = SupabaseService().getCurrentUser();
       final equipment = await _equipmentService.getPublicEquipment(limit: 100);
-      print('Loaded ${equipment.length} equipment items');
+      final filteredByOwner = currentUser == null
+          ? equipment
+          : equipment.where((item) => item.ownerId != currentUser.id).toList();
+
+      print(
+        'Loaded ${filteredByOwner.length} equipment items after owner filter',
+      );
       setState(() {
-        _allEquipment = equipment;
+        _allEquipment = filteredByOwner;
         _isLoading = false;
       });
       _filterEquipment();
@@ -152,6 +162,50 @@ class _FeedPageState extends State<FeedPage> {
         _error = 'Failed to load equipment: $e';
         _isLoading = false;
       });
+    }
+  }
+
+  Widget _buildEquipmentImage(String? imageData) {
+    if (imageData == null) {
+      return Container(
+        color: const Color(0xFF0F0F0F),
+        child: const Icon(Icons.image_outlined, color: Colors.grey, size: 40),
+      );
+    }
+
+    final isNetworkImage = imageData.startsWith('http');
+    if (isNetworkImage) {
+      return Image.network(
+        imageData,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return Container(
+            color: const Color(0xFF0F0F0F),
+            child: const Icon(
+              Icons.image_not_supported,
+              color: Colors.grey,
+              size: 40,
+            ),
+          );
+        },
+      );
+    }
+
+    try {
+      final base64Data = imageData.contains(',')
+          ? imageData.split(',').last
+          : imageData;
+      final bytes = base64Decode(base64Data.replaceAll('\n', ''));
+      return Image.memory(bytes, fit: BoxFit.cover);
+    } catch (_) {
+      return Container(
+        color: const Color(0xFF0F0F0F),
+        child: const Icon(
+          Icons.image_not_supported,
+          color: Colors.grey,
+          size: 40,
+        ),
+      );
     }
   }
 
@@ -828,7 +882,12 @@ class _FeedPageState extends State<FeedPage> {
             icon: Icons.message_outlined,
             title: 'Messages',
             subtitle: 'Chat with other users about equipment',
-            onTap: () {},
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ChatPage()),
+              );
+            },
           ),
           const SizedBox(height: 12),
           _buildProfileActionRow(
@@ -1013,29 +1072,7 @@ class _FeedPageState extends State<FeedPage> {
                         topLeft: Radius.circular(12),
                         topRight: Radius.circular(12),
                       ),
-                      child: equipment.firstImage != null
-                          ? Image.network(
-                              equipment.firstImage!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: const Color(0xFF0F0F0F),
-                                  child: const Icon(
-                                    Icons.image_not_supported,
-                                    color: Colors.grey,
-                                    size: 40,
-                                  ),
-                                );
-                              },
-                            )
-                          : Container(
-                              color: const Color(0xFF0F0F0F),
-                              child: const Icon(
-                                Icons.image_outlined,
-                                color: Colors.grey,
-                                size: 40,
-                              ),
-                            ),
+                      child: _buildEquipmentImage(equipment.firstImage),
                     ),
                     // Distance badge
                     if (distance != null)
@@ -1174,29 +1211,7 @@ class _FeedPageState extends State<FeedPage> {
                         topLeft: Radius.circular(12),
                         topRight: Radius.circular(12),
                       ),
-                      child: equipment.firstImage != null
-                          ? Image.network(
-                              equipment.firstImage!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: const Color(0xFF0F0F0F),
-                                  child: const Icon(
-                                    Icons.image_not_supported,
-                                    color: Colors.grey,
-                                    size: 40,
-                                  ),
-                                );
-                              },
-                            )
-                          : Container(
-                              color: const Color(0xFF0F0F0F),
-                              child: const Icon(
-                                Icons.image_outlined,
-                                color: Colors.grey,
-                                size: 40,
-                              ),
-                            ),
+                      child: _buildEquipmentImage(equipment.firstImage),
                     ),
                     // Distance badge
                     if (distance != null)
