@@ -17,7 +17,7 @@ class _DashboardPageState extends State<DashboardPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final EquipmentService _equipmentService = EquipmentService();
-  late String _userId;
+  String _userId = '';
 
   @override
   void initState() {
@@ -33,74 +33,41 @@ class _DashboardPageState extends State<DashboardPage>
     super.dispose();
   }
 
+  // ---------------- IMAGE ----------------
   Widget _buildPlaceholder() {
     return Container(
-      color: Colors.grey[900],
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.image_not_supported_outlined,
-              color: Colors.grey[600],
-              size: 32,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'No image',
-              style: TextStyle(color: Colors.grey[600], fontSize: 12),
-            ),
-          ],
-        ),
+      color: const Color.fromARGB(255, 67, 67, 67),
+      child: const Center(
+        child: Icon(Icons.image_not_supported, color: Colors.grey),
       ),
     );
   }
 
   Widget _buildEquipmentImage(String? imageData) {
-    if (imageData == null || imageData.trim().isEmpty)
+    if (imageData == null || imageData.trim().isEmpty) {
       return _buildPlaceholder();
-
-    final s = imageData.trim();
-
-    // Heuristics for base64 vs network
-    if (s.startsWith('data:image') ||
-        s.startsWith('iVBOR') ||
-        s.startsWith('/9j/') ||
-        (s.contains(',') && !s.contains('http'))) {
-      try {
-        var base64Data = s;
-        if (s.contains(',')) {
-          base64Data = s.split(',').last;
-        }
-        final bytes = convert.base64Decode(base64Data.replaceAll('\n', ''));
-        return Image.memory(
-          bytes,
-          fit: BoxFit.cover,
-          width: double.infinity,
-          height: double.infinity,
-          errorBuilder: (_, __, ___) => _buildPlaceholder(),
-        );
-      } catch (e) {
-        return _buildPlaceholder();
-      }
     }
 
-    // Fallback to network image
-    return Image.network(
-      s,
-      fit: BoxFit.cover,
-      width: double.infinity,
-      height: double.infinity,
-      loadingBuilder: (context, child, loadingProgress) {
-        if (loadingProgress == null) return child;
-        return const Center(
-          child: CircularProgressIndicator(color: Color(0xFFBB86FC)),
+    try {
+      if (imageData.length > 1000) {
+        final base64Str = imageData.contains(',')
+            ? imageData.split(',').last
+            : imageData;
+        final bytes = convert.base64Decode(base64Str);
+        return Image.memory(bytes, fit: BoxFit.cover);
+      } else {
+        return Image.network(
+          imageData,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _buildPlaceholder(),
         );
-      },
-      errorBuilder: (_, __, ___) => _buildPlaceholder(),
-    );
+      }
+    } catch (_) {
+      return _buildPlaceholder();
+    }
   }
 
+  // ---------------- BUILD ----------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,79 +77,42 @@ class _DashboardPageState extends State<DashboardPage>
             SliverAppBar(
               floating: true,
               snap: true,
-              elevation: 0,
-              backgroundColor: const Color(0xFF1E1E1E),
-              expandedHeight: 160,
+              backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+              expandedHeight: 140,
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
-                  padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        const Color(0xFF1E1E1E),
-                        const Color(0xFF1E1E1E).withValues(alpha: 0.8),
-                      ],
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      const Text(
-                        'My Gear',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Manage your equipment rentals',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[400]),
-                      ),
-                    ],
+                  padding: const EdgeInsets.fromLTRB(20, 60, 20, 20),
+                  child: const Text(
+                    'My Gear',
+                    style: TextStyle(color: Colors.white, fontSize: 26),
                   ),
                 ),
               ),
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(100),
-                child: Theme(
-                  data: Theme.of(
-                    context,
-                  ).copyWith(splashColor: Colors.transparent),
-                  child: TabBar(
-                    controller: _tabController,
-                    labelColor: const Color(0xFFBB86FC),
-                    unselectedLabelColor: Colors.grey[600],
-                    indicatorColor: const Color(0xFFBB86FC),
-                    indicatorWeight: 3,
-                    tabs: const [
-                      Tab(icon: Icon(Icons.inventory), text: 'My Gear'),
-                      Tab(icon: Icon(Icons.add_circle_outline), text: 'Add'),
-                      Tab(icon: Icon(Icons.bar_chart), text: 'Analytics'),
-                      Tab(icon: Icon(Icons.message_outlined), text: 'Messages'),
-                      Tab(icon: Icon(Icons.history), text: 'History'),
-                    ],
-                  ),
-                ),
+              bottom: TabBar(
+                controller: _tabController,
+                labelColor: const Color(0xFFBB86FC),
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: const Color(0xFFBB86FC),
+                tabs: const [
+                  Tab(icon: Icon(Icons.inventory), text: 'My Gear'),
+                  Tab(icon: Icon(Icons.add), text: 'Add'),
+                  Tab(icon: Icon(Icons.bar_chart), text: 'Analytics'),
+                  Tab(icon: Icon(Icons.message), text: 'Messages'),
+                  Tab(icon: Icon(Icons.history), text: 'History'),
+                ],
               ),
-            ];
-          },
-          body: TabBarView(
-            controller: _tabController,
-            children: [
-            // Tab 1: My Equipment
+            ),
+          ];
+        },
+
+        // ✅ Correct placement
+        body: TabBarView(
+          controller: _tabController,
+          children: [
             _buildMyEquipmentTab(),
-            // Tab 2: Add Equipment
             const AddEquipmentPage(),
-            // Tab 3: Analytics/Charting
             _buildAnalyticsTab(),
-            // Tab 4: Messages
             const ChatPage(),
-            // Tab 5: Rental History
             _buildHistoryTab(),
           ],
         ),
@@ -190,957 +120,122 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  // My Equipment Section
+  // ---------------- MY EQUIPMENT ----------------
   Widget _buildMyEquipmentTab() {
     return FutureBuilder<List<Equipment>>(
       future: _equipmentService.getUserEquipment(_userId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFFBB86FC)),
-            ),
-          );
+          return const Center(child: CircularProgressIndicator());
         }
 
         if (snapshot.hasError) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(
-                  Icons.error_outline,
-                  size: 64,
-                  color: Color(0xFFBB86FC),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Something went wrong',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[300],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '${snapshot.error}',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey[500]),
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: () => setState(() {}),
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Retry'),
-                ),
-              ],
-            ),
-          );
+          return Center(child: Text('Error: ${snapshot.error}'));
         }
 
-        final equipmentList = snapshot.data ?? [];
+        final list = snapshot.data ?? [];
 
-        if (equipmentList.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFBB86FC).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(
-                    Icons.inventory_2_outlined,
-                    size: 64,
-                    color: Color(0xFFBB86FC),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                const Text(
-                  'No equipment yet',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Start by adding your first item',
-                  style: TextStyle(color: Colors.grey[400]),
-                ),
-                const SizedBox(height: 32),
-                ElevatedButton.icon(
-                  onPressed: () => _tabController.animateTo(1),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add Equipment'),
-                ),
-              ],
-            ),
-          );
+        if (list.isEmpty) {
+          return const Center(child: Text('No Equipment'));
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: equipmentList.length,
-          itemBuilder: (context, index) {
-            final equipment = equipmentList[index];
-            return _buildEquipmentCard(equipment);
-          },
+          itemCount: list.length,
+          itemBuilder: (context, i) => _buildEquipmentCard(list[i]),
         );
       },
     );
   }
 
-  // Equipment Card
-  Widget _buildEquipmentCard(Equipment equipment) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.05),
-            width: 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Equipment Image
-            Stack(
-              children: [
-                // Image
-                ShaderMask(
-                  shaderCallback: (rect) {
-                    return LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black.withValues(alpha: 0),
-                        Colors.black.withValues(alpha: 0.3),
-                      ],
-                      stops: const [0, 1],
-                    ).createShader(rect);
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    height: 200,
-                    color: const Color(0xFF2A2A2A),
-                    child: equipment.images.isNotEmpty
-                        ? _buildEquipmentImage(equipment.images.first)
-                        : Icon(
-                            Icons.image_not_supported_outlined,
-                            size: 64,
-                            color: Colors.grey[700],
-                          ),
-                  ),
-                ),
-
-                // Status Badge
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(
-                        equipment.status,
-                      ).withValues(alpha: 0.9),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      equipment.status.toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                ),
-
-                // Photo Count Badge
-                if (equipment.images.length > 1)
-                  Positioned(
-                    bottom: 12,
-                    left: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.6),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.image_outlined,
-                            size: 14,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${equipment.images.length}',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
+  Widget _buildEquipmentCard(Equipment e) {
+    return Card(
+      color: const Color(0xFF1E1E1E),
+      margin: const EdgeInsets.all(10),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 200,
+            child: _buildEquipmentImage(
+              e.images.isNotEmpty ? e.images.first : null,
             ),
-
-            // Content
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title
-                  Text(
-                    equipment.name,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-
-                  // Category
-                  if (equipment.category != null)
-                    Text(
-                      equipment.category!,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[400],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-
-                  // Description
-                  if (equipment.description != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        equipment.description!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[500],
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-
-                  const SizedBox(height: 16),
-
-                  // Price and Discount Row
-                  Row(
-                    children: [
-                      // Price
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: const Color(
-                              0xFFBB86FC,
-                            ).withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: const Color(
-                                0xFFBB86FC,
-                              ).withValues(alpha: 0.2),
-                              width: 1,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Per Day',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey[400],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'TK ${equipment.perDayPrice.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFFBB86FC),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(width: 12),
-
-                      // Discount
-                      if (equipment.discountPercentage > 0)
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.green.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: Colors.green.withValues(alpha: 0.2),
-                                width: 1,
-                              ),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Discount',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey[400],
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  '${equipment.discountPercentage}%',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.green,
-                                  ),
-                                ),
-                                Text(
-                                  'after ${equipment.discountMinDays}d',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.grey[500],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-
-                  // Location
-                  if (equipment.locationName != null &&
-                      equipment.locationName!.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.location_on_outlined,
-                            size: 16,
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            equipment.locationName!,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[400],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                  const SizedBox(height: 16),
-
-                  // Action Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => _showEditDialog(equipment),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: const Color(
-                                    0xFFBB86FC,
-                                  ).withValues(alpha: 0.3),
-                                  width: 1,
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.edit_outlined,
-                                      size: 16,
-                                      color: Color(0xFFBB86FC),
-                                    ),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      'Edit',
-                                      style: TextStyle(
-                                        color: Color(0xFFBB86FC),
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => _deleteEquipment(equipment.id),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                border: Border.all(
-                                  color: Colors.red.withValues(alpha: 0.3),
-                                  width: 1,
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.delete_outline,
-                                      size: 16,
-                                      color: Colors.red,
-                                    ),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      'Delete',
-                                      style: TextStyle(
-                                        color: Colors.red,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+          ),
+          ListTile(
+            title: Text(e.name, style: const TextStyle(color: Colors.white)),
+            subtitle: Text(
+              'TK ${e.perDayPrice}',
+              style: const TextStyle(color: Colors.grey),
+            ),
+          ),
+          Row(
+            children: [
+              TextButton(
+                onPressed: () => _showEditDialog(e),
+                child: const Text('Edit'),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'available':
-        return Colors.green;
-      case 'unavailable':
-        return Colors.red;
-      case 'available_from':
-        return Colors.orange;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  // Show Edit Dialog
-  void _showEditDialog(Equipment equipment) {
-    final nameController = TextEditingController(text: equipment.name);
-    final priceController = TextEditingController(
-      text: equipment.perDayPrice.toString(),
-    );
-    final descriptionController = TextEditingController(
-      text: equipment.description ?? '',
-    );
-    final categoryController = TextEditingController(
-      text: equipment.category ?? '',
-    );
-    final discountController = TextEditingController(
-      text: equipment.discountPercentage.toString(),
-    );
-    final discountDaysController = TextEditingController(
-      text: equipment.discountMinDays.toString(),
-    );
-    final locationController = TextEditingController(
-      text: equipment.locationName ?? '',
-    );
-    final pickupAddressController = TextEditingController(
-      text: equipment.pickupAddress ?? '',
-    );
-
-    String selectedStatus = equipment.status;
-    DateTime? selectedAvailableFrom = equipment.availableFrom;
-    bool isPublic = equipment.isPublic;
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          backgroundColor: const Color(0xFF1E1E1E),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Text(
-            'Edit Equipment',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Equipment Name',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[600]!),
-                    ),
-                    focusedBorder: const UnderlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFFBB86FC)),
-                    ),
-                  ),
-                  style: const TextStyle(color: Colors.white),
+              TextButton(
+                onPressed: () => _deleteEquipment(e.id),
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.red),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: categoryController,
-                  decoration: InputDecoration(
-                    labelText: 'Category',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[600]!),
-                    ),
-                    focusedBorder: const UnderlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFFBB86FC)),
-                    ),
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: priceController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Price per Day (TK)',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[600]!),
-                    ),
-                    focusedBorder: const UnderlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFFBB86FC)),
-                    ),
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: descriptionController,
-                  maxLines: 2,
-                  decoration: InputDecoration(
-                    labelText: 'Description',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[600]!),
-                    ),
-                    focusedBorder: const UnderlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFFBB86FC)),
-                    ),
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: locationController,
-                  decoration: InputDecoration(
-                    labelText: 'Location Name',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[600]!),
-                    ),
-                    focusedBorder: const UnderlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFFBB86FC)),
-                    ),
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: pickupAddressController,
-                  maxLines: 2,
-                  decoration: InputDecoration(
-                    labelText: 'Pickup Address',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[600]!),
-                    ),
-                    focusedBorder: const UnderlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFFBB86FC)),
-                    ),
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: discountController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Discount %',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[600]!),
-                    ),
-                    focusedBorder: const UnderlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFFBB86FC)),
-                    ),
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: discountDaysController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: 'Discount Min Days',
-                    labelStyle: TextStyle(color: Colors.grey[400]),
-                    enabledBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: Colors.grey[600]!),
-                    ),
-                    focusedBorder: const UnderlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFFBB86FC)),
-                    ),
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(color: Colors.grey[600]!),
-                    ),
-                  ),
-                  child: DropdownButton<String>(
-                    value: selectedStatus,
-                    isExpanded: true,
-                    dropdownColor: const Color(0xFF1E1E1E),
-                    style: const TextStyle(color: Colors.white),
-                    underline: const SizedBox.shrink(),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'available',
-                        child: Text('Available'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'unavailable',
-                        child: Text('Unavailable'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'available_from',
-                        child: Text('Available From'),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setState(() => selectedStatus = value ?? 'available');
-                    },
-                  ),
-                ),
-                const SizedBox(height: 16),
-                if (selectedStatus == 'available_from')
-                  GestureDetector(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: selectedAvailableFrom ?? DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(2099),
-                      );
-                      if (picked != null) {
-                        setState(() => selectedAvailableFrom = picked);
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          bottom: BorderSide(color: Colors.grey[600]!),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            selectedAvailableFrom == null
-                                ? 'Select Available From'
-                                : 'Available From: ${selectedAvailableFrom!.toLocal().toString().split(' ')[0]}',
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                          const Icon(
-                            Icons.calendar_today,
-                            color: Color(0xFFBB86FC),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Public', style: TextStyle(color: Colors.white)),
-                    Switch(
-                      value: isPublic,
-                      onChanged: (value) => setState(() => isPublic = value),
-                      activeColor: const Color(0xFFBB86FC),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel', style: TextStyle(color: Colors.grey[400])),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFBB86FC),
               ),
-              onPressed: () async {
-                Navigator.pop(context);
-                try {
-                  await _equipmentService.updateEquipment(
-                    equipmentId: equipment.id,
-                    name: nameController.text,
-                    category: categoryController.text,
-                    perDayPrice: double.parse(priceController.text),
-                    description: descriptionController.text,
-                    locationName: locationController.text,
-                    pickupAddress: pickupAddressController.text,
-                    discountPercentage: int.parse(discountController.text),
-                    discountMinDays: int.parse(discountDaysController.text),
-                    status: selectedStatus,
-                    availableFrom: selectedAvailableFrom,
-                    isPublic: isPublic,
-                  );
-                  setState(() {});
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Equipment updated successfully'),
-                      backgroundColor: Colors.green.withValues(alpha: 0.8),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error: $e'),
-                      backgroundColor: Colors.red.withValues(alpha: 0.8),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Delete Equipment
-  void _deleteEquipment(String equipmentId) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1E1E1E),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'Delete Equipment',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        content: Text(
-          'Are you sure you want to delete this equipment? This action cannot be undone.',
-          style: TextStyle(color: Colors.grey[400]),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel', style: TextStyle(color: Colors.grey[400])),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.withValues(alpha: 0.2),
-              foregroundColor: Colors.red,
-            ),
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                await _equipmentService.deleteEquipment(equipmentId);
-                setState(() {});
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Equipment deleted'),
-                    backgroundColor: Colors.red.withValues(alpha: 0.8),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error: $e'),
-                    backgroundColor: Colors.red.withValues(alpha: 0.8),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              }
-            },
-            child: const Text('Delete'),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // Analytics/Charting Section
-  Widget _buildAnalyticsTab() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+  // ---------------- EDIT ----------------
+  void _showEditDialog(Equipment e) {
+    final name = TextEditingController(text: e.name);
+    final price = TextEditingController(text: e.perDayPrice.toString());
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Edit'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFFBB86FC).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFFBB86FC).withValues(alpha: 0.2),
-                  width: 1,
-                ),
-              ),
-              child: const Icon(
-                Icons.bar_chart_outlined,
-                size: 64,
-                color: Color(0xFFBB86FC),
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Analytics Coming Soon',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Track your rental statistics,\nearnings, and trends',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[400], height: 1.6),
-            ),
+            TextField(controller: name),
+            TextField(controller: price, keyboardType: TextInputType.number),
           ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await _equipmentService.updateEquipment(
+                equipmentId: e.id,
+                name: name.text,
+                perDayPrice: double.tryParse(price.text) ?? 0,
+              );
+              Navigator.pop(context);
+              setState(() {});
+            },
+            child: const Text('Save'),
+          ),
+        ],
       ),
     );
   }
 
-  // Rental History Section
+  // ---------------- DELETE ----------------
+  void _deleteEquipment(String id) async {
+    await _equipmentService.deleteEquipment(id);
+    setState(() {});
+  }
+
+  // ---------------- OTHER TABS ----------------
+  Widget _buildAnalyticsTab() {
+    return const Center(child: Text('Analytics Coming Soon'));
+  }
+
   Widget _buildHistoryTab() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: Colors.green.withValues(alpha: 0.2),
-                  width: 1,
-                ),
-              ),
-              child: const Icon(
-                Icons.history_outlined,
-                size: 64,
-                color: Colors.green,
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text(
-              'Rental History Coming Soon',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'View your complete rental history\nand past transactions',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[400], height: 1.6),
-            ),
-          ],
-        ),
-      ),
-    );
+    return const Center(child: Text('History Coming Soon'));
   }
 }
