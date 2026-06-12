@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/equipment.dart';
 import '../services/chat_service.dart';
 import 'chat_detail_page.dart';
+import 'rent_page.dart';
 
 class EquipmentDetailsPage extends StatefulWidget {
   final Equipment equipment;
@@ -483,12 +484,11 @@ class _EquipmentDetailsPageState extends State<EquipmentDetailsPage> {
                       height: 50,
                       child: ElevatedButton(
                         onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Rental feature coming soon for ${widget.equipment.name}',
-                              ),
-                              duration: const Duration(seconds: 2),
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  RentPage(equipment: widget.equipment),
                             ),
                           );
                         },
@@ -499,7 +499,7 @@ class _EquipmentDetailsPageState extends State<EquipmentDetailsPage> {
                           ),
                         ),
                         child: const Text(
-                          'Rent Now',
+                          'Book Now',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

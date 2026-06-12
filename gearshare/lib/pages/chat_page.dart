@@ -76,7 +76,10 @@ class _ChatPageState extends State<ChatPage> {
             ),
           ];
         },
-        body: FutureBuilder<List<Chat>>(
+        body: 
+        
+        
+        FutureBuilder<List<Chat>>(
           future: _chatService.getUserChats(_currentUserId),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {

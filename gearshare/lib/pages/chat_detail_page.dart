@@ -24,8 +24,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   late Stream<List<Message>> _messagesStream;
-  final Set<String> _knownMessageIds = {};
-  bool _hasLoadedMessages = false;
 
   @override
   void initState() {
@@ -56,54 +54,6 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     Future.delayed(const Duration(milliseconds: 200), () {
       _scrollToBottom();
     });
-  }
-
-  void _showNewMessagePopup(Message message) {
-    final senderName = message.senderName.isNotEmpty
-        ? message.senderName
-        : 'Someone';
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('New message from $senderName'),
-        duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
-  Future<void> _markChatAsRead() async {
-    try {
-      await _chatService.markChatAsRead(widget.chat.id);
-    } catch (_) {
-      // ignore errors from read-state updates
-    }
-  }
-
-  void _processMessageStream(List<Message> messages) {
-    final newIncomingMessages = messages.where((message) {
-      return !_knownMessageIds.contains(message.id) &&
-          message.senderId != widget.currentUserId &&
-          !message.isRead;
-    }).toList();
-
-    if (!_hasLoadedMessages) {
-      _hasLoadedMessages = true;
-      if (newIncomingMessages.isNotEmpty) {
-        for (final message in newIncomingMessages) {
-          _chatService.markMessageAsRead(message.id);
-        }
-        _markChatAsRead();
-      }
-    } else if (newIncomingMessages.isNotEmpty) {
-      final latest = newIncomingMessages.last;
-      _showNewMessagePopup(latest);
-      for (final message in newIncomingMessages) {
-        _chatService.markMessageAsRead(message.id);
-      }
-      _markChatAsRead();
-    }
-
-    _knownMessageIds.addAll(messages.map((message) => message.id));
   }
 
   void _scrollToBottom() {
