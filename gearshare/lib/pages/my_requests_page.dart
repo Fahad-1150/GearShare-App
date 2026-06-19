@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/rental.dart';
+import '../services/ssl_payment_service.dart';
 import 'rental_details_page.dart';
 
 class MyRequestsPage extends StatefulWidget {
@@ -169,22 +170,78 @@ class _MyRequestsPageState extends State<MyRequestsPage>
   }
 
   Future<void> _processPayment(Rental rental) async {
+    final currentUser = _supabase.auth.currentUser;
+    if (currentUser == null) {
+      _showSnackBar('User not authenticated', Colors.red);
+      return;
+    }
+
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
         backgroundColor: const Color(0xFF1E1E1E),
-        title: const Text('Process Payment'),
+        title: const Text('SSL Medo Payment Gateway'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Amount: TK ${rental.totalAmount.toStringAsFixed(2)}'),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFBB86FC).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Payment Details',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFBB86FC),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildPaymentDetailRow(
+                    'Equipment',
+                    rental.equipmentName ?? 'Unknown',
+                  ),
+                  const SizedBox(height: 8),
+                  _buildPaymentDetailRow(
+                    'Rental Period',
+                    '${rental.startDate.toString().split(' ')[0]} to ${rental.endDate.toString().split(' ')[0]}',
+                  ),
+                  const SizedBox(height: 8),
+                  _buildPaymentDetailRow(
+                    'Amount',
+                    'TK ${rental.totalAmount.toStringAsFixed(2)}',
+                    isHighlight: true,
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 16),
-            const Text('Select payment method:'),
-            const SizedBox(height: 8),
-            const Text(
-              'Note: In a real app, integrate with Stripe/PayPal here',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info, size: 16, color: Colors.orange),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'You will be redirected to SSL Medo (sslcommerz) secure payment gateway',
+                      style: TextStyle(fontSize: 11, color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -193,54 +250,166 @@ class _MyRequestsPageState extends State<MyRequestsPage>
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          ElevatedButton.icon(
             onPressed: () async {
               Navigator.pop(context);
-              // Simulate payment processing
-              _simulatePaymentProcessing(rental);
+              await _initiateSSLPayment(rental, currentUser);
             },
+            icon: const Icon(Icons.lock),
+            label: const Text('Pay with SSL Medo'),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFBB86FC),
             ),
-            child: const Text('Pay Now'),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _simulatePaymentProcessing(Rental rental) async {
+  Widget _buildPaymentDetailRow(
+    String label,
+    String value, {
+    bool isHighlight = false,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: isHighlight ? 14 : 12,
+            fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal,
+            color: isHighlight ? const Color(0xFFBB86FC) : Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _initiateSSLPayment(Rental rental, User currentUser) async {
     try {
-      // Update rental status to mark payment as completed
+      // Get user data from auth or database
+      String fullName = 'Customer';
+      String email = currentUser.email ?? 'noemail@example.com';
+      String phone = '01700000000';
+
+      // Try to get additional user data if available
+      try {
+        final userData = await _supabase
+            .from('users')
+            .select()
+            .eq('id', currentUser.id)
+            .single();
+
+        fullName =
+            userData['full_name'] ??
+            userData['name'] ??
+            userData['username'] ??
+            currentUser.email ??
+            'Customer';
+        email = userData['email'] ?? currentUser.email ?? 'noemail@example.com';
+        phone = userData['phone'] ?? userData['phone_number'] ?? '01700000000';
+      } catch (e) {
+        // If user table doesn't exist or has different structure, use defaults
+        fullName = currentUser.email?.split('@')[0] ?? 'Customer';
+        print('⚠️ Using default user data: $fullName');
+      }
+
+      print('🔐 Starting SSL Commerz Payment Process...');
+      print('Customer: $fullName ($email)');
+      print('Amount: TK ${rental.totalAmount.toStringAsFixed(2)}');
+
+      // Initiate SSL Commerz payment using official package
+      final result = await SSLPaymentService.initiatePayment(
+        rental: rental,
+        customerName: fullName,
+        customerEmail: email,
+        customerPhone: phone,
+      );
+
+      if (!mounted) return;
+
+      // Handle payment result
+      if (result != null) {
+        print('Payment Result Status: ${result.status}');
+        print('Transaction ID: ${result.tranId}');
+
+        // Show payment result
+        SSLPaymentService.handlePaymentResult(result);
+
+        // Check if payment was successful
+        final isSuccess =
+            result.status?.toLowerCase() == 'success' ||
+            result.status?.toLowerCase() == 'valid';
+
+        if (isSuccess) {
+          // Update database with successful payment
+          await _updatePaymentStatus(rental, result.tranId ?? 'UNKNOWN');
+
+          // Reload requests after successful payment
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) {
+              _loadRentalRequests();
+            }
+          });
+        }
+      } else {
+        print('Payment cancelled or failed');
+        if (mounted) {
+          _showSnackBar('Payment was not completed', Colors.orange);
+        }
+      }
+    } catch (e) {
+      print('❌ Payment Error: $e');
+      if (mounted) {
+        _showSnackBar('Payment Error: $e', Colors.red);
+      }
+    }
+  }
+
+  /// Update payment status in database after successful payment
+  Future<void> _updatePaymentStatus(Rental rental, String transactionId) async {
+    try {
+      print('💾 Updating payment status in database...');
+      print('Rental ID: ${rental.id}');
+      print('Transaction ID: $transactionId');
+
       await _supabase
           .from('rentals')
           .update({
             'payment_status': 'completed',
             'rental_status': 'accepted',
             'payment_time': DateTime.now().toIso8601String(),
-            'transaction_id': 'TXN_${DateTime.now().millisecondsSinceEpoch}',
+            'transaction_id': transactionId,
           })
           .eq('id', rental.id);
 
+      print('✅ Database updated successfully');
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Payment completed successfully!'),
-            backgroundColor: Colors.green,
-          ),
+        _showSnackBar(
+          'Payment successful! Rental has been activated.',
+          Colors.green,
         );
-        _loadRentalRequests();
       }
     } catch (e) {
+      print('❌ Database Error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error processing payment: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showSnackBar('Error updating rental status: $e', Colors.red);
       }
     }
+  }
+
+  void _showSnackBar(String message, Color backgroundColor) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   Future<void> _confirmGiven(Rental rental) async {
