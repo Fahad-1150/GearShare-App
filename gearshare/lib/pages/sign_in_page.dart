@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/admin_auth_service.dart';
 import '../services/supabase_service.dart';
 
 class SignInPage extends StatefulWidget {
@@ -34,6 +35,26 @@ class _SignInPageState extends State<SignInPage> {
         _errorMessage = 'Please enter both email and password.';
         _isLoading = false;
       });
+      return;
+    }
+
+    if (AdminAuthService.isAdminEmail(email)) {
+      if (AdminAuthService.signIn(email: email, password: password)) {
+        try {
+          await SupabaseService().signIn(email: email, password: password);
+        } catch (_) {
+          // The local admin panel still opens. To show private rows protected by
+          // RLS, create this same admin account in Supabase Auth and run the
+          // admin_panel_rls.sql policies.
+        }
+        if (!mounted) return;
+        Navigator.of(context).pushReplacementNamed('/admin');
+      } else {
+        setState(() {
+          _errorMessage = 'Invalid admin password.';
+          _isLoading = false;
+        });
+      }
       return;
     }
 

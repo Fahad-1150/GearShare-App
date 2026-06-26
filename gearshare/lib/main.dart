@@ -4,6 +4,8 @@ import 'pages/sign_in_page.dart';
 import 'pages/sign_up_page.dart';
 import 'pages/dashboard_page.dart';
 import 'pages/feed_page.dart';
+import 'pages/admin_panel_page.dart';
+import 'services/admin_auth_service.dart';
 import 'services/supabase_service.dart';
 
 Future<void> main() async {
@@ -62,6 +64,7 @@ class GearShareApp extends StatelessWidget {
         '/home': (context) => const HomePage(),
         '/dashboard': (context) => const DashboardPage(),
         '/feed': (context) => const FeedPage(),
+        '/admin': (context) => const AdminPanelPage(),
       },
     );
   }
@@ -167,7 +170,9 @@ class _AuthCheckState extends State<AuthCheck> {
     final currentUser = SupabaseService().getCurrentUser();
 
     // If user is logged in, show FeedPage, otherwise show SignInPage
-    if (currentUser != null) {
+    if (AdminAuthService.isAdminSignedIn) {
+      return const AdminPanelPage();
+    } else if (currentUser != null) {
       return const FeedPage();
     } else {
       return const SignInPage();
